@@ -1,12 +1,18 @@
-console.log("APP FINAL - HIJRIYAH + MAGHRIB AKTIF");
+console.log("APP FINAL - FULL FITUR + NOTIF AKTIF");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
+let notifSudah = false;
 
 // ================= INIT =================
 window.onload = () => {
   startClock();
-  getLocation(); // hijriyah dipanggil dari sini (pakai GPS)
+  getLocation();
+
+  // notif saat pertama buka
+  setTimeout(()=>{
+    showNotif("Hilal Observatory", "Aplikasi siap digunakan 🌙");
+  },2000);
 };
 
 // ================= JAM =================
@@ -35,18 +41,12 @@ function getHijri(lat, lon){
 
   let now = new Date();
 
-  // ================= ESTIMASI MAGHRIB =================
-  // pendekatan sederhana berbasis longitude
-  let maghrib = 18 + (lon / 180); 
+  // estimasi maghrib sederhana
+  let maghrib = 18 + (lon / 180);
   let currentHour = now.getHours() + (now.getMinutes()/60);
 
-  let tambahHari = 0;
+  let tambahHari = currentHour >= maghrib ? 1 : 0;
 
-  if(currentHour >= maghrib){
-    tambahHari = 1;
-  }
-
-  // ================= HITUNG HIJRIYAH =================
   let jd = Math.floor((now.getTime() / 86400000) + 2440587.5) + tambahHari;
 
   let l = jd - 1948440 + 10632;
@@ -109,9 +109,7 @@ function getLocation(){
       document.getElementById('lokasi').innerText = "📍Tidak tersedia";
     }
 
-    // 🔥 HIJRIYAH BERDASARKAN GPS
     getHijri(lat, lon);
-
     hitungHilal(lat, lon);
     startCam();
 
@@ -133,7 +131,7 @@ function getLocation(){
 // ================= HILAL =================
 function hitungHilal(lat, lon){
 
-  // masih simulasi
+  // simulasi (nanti bisa upgrade ke real)
   let alt = Math.random()*10;
   let azi = Math.random()*360;
   let elo = Math.random()*15;
@@ -155,7 +153,6 @@ function hitungHilal(lat, lon){
 
   let nextMonth = bulan[(hijriMonthIndex + 1) % 12];
 
-  // ambil tanggal hijriyah dari tampilan
   let teks = document.getElementById('hijri').innerText;
   let tanggalHijri = parseInt(teks.split(" ")[1]);
 
@@ -167,6 +164,14 @@ function hitungHilal(lat, lon){
 
       prediksiEl.innerText =
         `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
+
+      // 🔔 notif sekali saja
+      if(!notifSudah){
+        showNotif("Hilal Terpenuhi",
+          `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
+        notifSudah = true;
+      }
+
     } else {
       statusEl.innerText = '❌ Belum Memenuhi';
       statusEl.className = 'status no';
@@ -175,7 +180,7 @@ function hitungHilal(lat, lon){
         "⏳ Hilal belum terlihat (istikmal ke-30)";
     }
 
-  }else{
+  } else {
     statusEl.innerText = 'ℹ️ Belum Akhir Bulan';
     statusEl.className = 'status';
 
@@ -184,6 +189,27 @@ function hitungHilal(lat, lon){
   }
 
   updateAR(azi, alt);
+}
+
+// ================= NOTIFIKASI =================
+function requestNotif(){
+  Notification.requestPermission().then(permission=>{
+    if(permission === "granted"){
+      showNotif("Notifikasi Aktif",
+        "🔔 Notifikasi berhasil diaktifkan");
+    }else{
+      alert("Notifikasi ditolak");
+    }
+  });
+}
+
+function showNotif(judul, pesan){
+  if(Notification.permission === "granted"){
+    new Notification(judul,{
+      body: pesan,
+      icon: "icon.png"
+    });
+  }
 }
 
 // ================= CAMERA =================
@@ -206,9 +232,4 @@ function updateAR(az, alt){
 
   m.style.left = x + 'px';
   m.style.top = y + 'px';
-}
-
-// ================= NOTIF =================
-function requestNotif(){
-  Notification.requestPermission();
 }
