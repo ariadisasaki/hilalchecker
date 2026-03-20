@@ -9,7 +9,7 @@ window.onload = () => {
   startClock();
   getLocation();
   initSensor();
-  setTimeout(()=>{ showNotif("Hilal Observatory","Aplikasi siap digunakan 🌙"); },2000);
+  setTimeout(()=>{ showNotif("Hilal Checker","Aplikasi siap digunakan 🌙"); },2000);
 };
 
 // ================= JAM =================
