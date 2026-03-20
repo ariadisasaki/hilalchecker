@@ -7,19 +7,24 @@ body{
 
 .header{
   text-align:center;
-  padding:20px;
+  padding:10px 0; /* lebih tipis dari sebelumnya */
+  margin-bottom:5px; /* rapatkan jarak ke card pertama */
 }
 
 .container{
-  padding:15px;
+  padding:10px; /* lebih compact */
 }
 
 .card{
   background: rgba(255,255,255,0.08);
   border-radius:20px;
   padding:15px;
-  margin-bottom:15px;
+  margin-bottom:10px; /* jarak antar card lebih tipis */
   box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+.card-center{
+  text-align:center; /* semua teks di card center */
 }
 
 .data-grid{
@@ -32,6 +37,7 @@ body{
   background: rgba(255,255,255,0.05);
   padding:10px;
   border-radius:12px;
+  text-align:center;
 }
 
 .highlight{
@@ -40,7 +46,6 @@ body{
 }
 
 .status{
-  text-align:center;
   font-size:18px;
   font-weight:600;
   padding:10px;
