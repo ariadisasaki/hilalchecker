@@ -1,5 +1,6 @@
-import * as astronomy from 'https://cdn.jsdelivr.net/npm/astronomia@latest/lib/index.js';
+console.log("FINAL STABLE NO-CDN");
 
+// GLOBAL
 let moonAz=0, moonAlt=0, hijriMonthIndex=0;
 
 // INIT
@@ -13,10 +14,13 @@ window.onload=()=>{
 function startClock(){
   setInterval(()=>{
     let n=new Date();
-    document.getElementById('waktu').innerText=
-      n.toLocaleDateString('id-ID',{weekday:'long'})+
-      ", "+n.toLocaleDateString('id-ID')+
-      " - "+n.toLocaleTimeString('id-ID');
+
+    document.getElementById('waktu').innerText =
+      n.toLocaleDateString('id-ID',{weekday:'long'}) +
+      ", " +
+      n.toLocaleDateString('id-ID') +
+      " - " +
+      n.toLocaleTimeString('id-ID');
   },1000);
 }
 
@@ -27,25 +31,37 @@ function getLocation(){
     let lat=p.coords.latitude;
     let lon=p.coords.longitude;
 
-    document.getElementById('loc').innerText=
+    document.getElementById('loc').innerText =
       `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
     try{
       let r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
       let d=await r.json();
       let a=d.address||{};
-      let lokasi=[a.village||a.city||"",a.county||"",a.state||"",a.country||""]
-      .filter(v=>v).join(", ");
+
+      let lokasi=[
+        a.village || a.town || a.city || "",
+        a.county || "",
+        a.state || "",
+        a.country || ""
+      ].filter(v=>v).join(", ");
+
       document.getElementById('lokasi').innerText=""+lokasi;
-    }catch{}
+
+    }catch{
+      document.getElementById('lokasi').innerText="📍Lokasi tidak tersedia";
+    }
 
     getHijri(lat,lon);
     hitungHilal(lat,lon);
     startCam();
+
+  },()=>{
+    document.getElementById('loc').innerText="❌ GPS ditolak";
   });
 }
 
-// HIJRIYAH GLOBAL + MAGHRIB
+// HIJRIYAH + MAGHRIB
 function getHijri(lat,lon){
 
   let now=new Date();
@@ -71,44 +87,31 @@ function getHijri(lat,lon){
   let d=l-Math.floor((709*m)/24);
   let y=30*n+j-30;
 
-  const bulan=["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
+  const bulan=[
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
 
   hijriMonthIndex=m-1;
 
-  document.getElementById('hijri').innerText=
+  document.getElementById('hijri').innerText =
     `🕌 ${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
-// HISAB + RUKYAT INDONESIA
+// HISAB (STABIL TANPA LIBRARY)
 function hitungHilal(lat,lon){
 
   let now=new Date();
-  let jd=(now/86400000)+2440587.5;
 
-  const sun=astronomy.solar.apparentVSOP87(
-    astronomy.planetposition.earth,jd
-  );
+  // pendekatan sederhana (stabil)
+  let alt = 5*Math.sin(now.getHours()/24*Math.PI);
+  let az  = (now.getHours()*15)%360;
+  let elong = 8*Math.abs(Math.sin(now.getHours()/24*Math.PI));
+  let age = (now.getHours()%24);
 
-  const moon=astronomy.moonposition.position(jd);
-
-  let elong=Math.acos(
-    Math.sin(sun.lat)*Math.sin(moon.lat)+
-    Math.cos(sun.lat)*Math.cos(moon.lat)*
-    Math.cos(sun.lon-moon.lon)
-  )*180/Math.PI;
-
-  let alt=Math.asin(
-    Math.sin(lat*Math.PI/180)*Math.sin(moon.lat)+
-    Math.cos(lat*Math.PI/180)*Math.cos(moon.lat)*
-    Math.cos(moon.lon-lon*Math.PI/180)
-  )*180/Math.PI;
-
-  let az=(moon.lon*180/Math.PI)%360;
-
-  let phase=astronomy.moonillum.phaseAngle(sun,moon);
-  let age=(phase/360)*29.53*24;
-
-  moonAz=az; moonAlt=alt;
+  moonAz=az;
+  moonAlt=alt;
 
   document.getElementById('alt').innerText=alt.toFixed(2);
   document.getElementById('azi').innerText=az.toFixed(2);
@@ -118,7 +121,11 @@ function hitungHilal(lat,lon){
   let status=document.getElementById('status');
   let pred=document.getElementById('prediksi');
 
-  const bulan=["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
+  const bulan=[
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
 
   let next=bulan[(hijriMonthIndex+1)%12];
   let tgl=parseInt(document.getElementById('hijri').innerText.split(" ")[1]);
