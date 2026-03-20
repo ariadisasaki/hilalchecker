@@ -101,7 +101,7 @@ function getLocation(){
       ].filter(v => v && v.trim() !== "");
 
       document.getElementById('lokasi').innerText =
-        `📍${parts.join(', ')}`;
+        `${parts.join(', ')}`;
 
     }catch{
       document.getElementById('lokasi').innerText =
