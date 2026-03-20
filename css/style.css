@@ -71,3 +71,16 @@ button{
   background:#3a7bfd;
   color:#fff;
 }
+
+#hijri{
+  margin-top:5px;
+  font-size:14px;
+  opacity:0.8;
+}
+
+#prediksi{
+  text-align:center;
+  margin-top:10px;
+  font-size:14px;
+  opacity:0.9;
+}
