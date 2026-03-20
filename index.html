@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Hilal Checker</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
@@ -17,52 +17,42 @@
 
 <div class="container">
 
-  <!-- Tanggal & Hijriyah -->
-  <div class="card center-text">
-    <h3>🕒 Waktu Saat Ini</h3>
-    <p id="waktu">Memuat...</p>
-    <p id="hijri">🕌 Memuat...</p>
-  </div>
-
-  <!-- Lokasi -->
-  <div class="card center-text">
-    <h3>📍 Lokasi</h3>
-    <p id="lokasi">Memuat...</p>
-    <p id="loc">Memuat...</p>
-  </div>
-
-  <!-- Data Hilal -->
-  <div class="card">
-    <h3>🌙 Data Hilal</h3>
-    <div class="data-grid">
-      <div class="data-box">Altitude<br><span id="alt" class="highlight">--</span>°</div>
-      <div class="data-box">Azimuth<br><span id="azi" class="highlight">--</span>°</div>
-      <div class="data-box">Elongasi<br><span id="elo" class="highlight">--</span>°</div>
-      <div class="data-box">Umur<br><span id="age" class="highlight">--</span> jam</div>
-    </div>
-  </div>
-
-  <!-- Status Hilal -->
-  <div class="card center-text">
-    <h3>📊 Status Hilal</h3>
-    <div id="status" class="status">Memuat...</div>
-    <div id="prediksi"></div>
-  </div>
-
-  <!-- AR Kamera -->
-  <div class="card">
-    <h3>📷 AR Hilal</h3>
-    <video id="cam" autoplay playsinline></video>
-    <div id="marker">🌙</div>
-  </div>
-
-  <button onclick="requestNotif()">🔔 Aktifkan Notifikasi</button>
+<div class="card">
+  <h3>📍 Lokasi & Koordinat</h3>
+  <p id="lokasi">Memuat...</p>
+  <p id="loc">Memuat...</p>
 </div>
 
-<!-- Astronomia UMD -->
-<script src="https://cdn.jsdelivr.net/gh/commenthol/astronomia@master/dist/astronomia.umd.min.js"></script>
-<!-- App JS -->
-<script src="js/app.js"></script>
+<div class="card">
+  <h3>🕒 Waktu & Tanggal</h3>
+  <p id="waktu">Memuat...</p>
+  <p id="hijri">Memuat...</p>
+</div>
 
+<div class="card">
+  <h3>🌙 Data Hilal</h3>
+  <div class="data-grid">
+    <div class="data-box">Altitude<br><span id="alt" class="highlight"></span>°</div>
+    <div class="data-box">Azimuth<br><span id="azi" class="highlight"></span>°</div>
+    <div class="data-box">Elongasi<br><span id="elo" class="highlight"></span>°</div>
+    <div class="data-box">Umur<br><span id="age" class="highlight"></span> jam</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>📊 Status Hilal</h3>
+  <div id="status" class="status">Memuat...</div>
+  <p id="prediksi" class="status"></p>
+</div>
+
+<div class="card">
+  <h3>📷 AR Hilal</h3>
+  <video id="cam" autoplay playsinline></video>
+  <div id="marker">🌙</div>
+</div>
+
+<button onclick="requestNotif()">🔔 Aktifkan Notifikasi</button>
+
+<script src="app.js"></script>
 </body>
 </html>
