@@ -21,6 +21,10 @@ body{
   margin-bottom:15px;
 }
 
+.center{
+  text-align:center;
+}
+
 .data-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
