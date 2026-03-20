@@ -1,7 +1,7 @@
-// ================= INIT =================
 window.onload = () => {
   startClock();
   getLocation();
+  getHijri();
 };
 
 // ================= JAM =================
@@ -25,6 +25,19 @@ function capitalize(s){
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ================= HIJRIYAH =================
+function getHijri(){
+  let today = new Date();
+
+  let hijri = new Intl.DateTimeFormat('id-TN-u-ca-islamic', {
+    day:'numeric',
+    month:'long',
+    year:'numeric'
+  }).format(today);
+
+  document.getElementById('hijri').innerText = "🕌 " + hijri;
+}
+
 // ================= GPS =================
 function getLocation(){
   navigator.geolocation.getCurrentPosition(async (p)=>{
@@ -34,7 +47,6 @@ function getLocation(){
     document.getElementById('loc').innerText =
       `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
-    // lokasi nama
     try{
       let res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
@@ -56,23 +68,16 @@ function getLocation(){
       document.getElementById('lokasi').innerText = "📍Tidak tersedia";
     }
 
-    // hitung hilal sederhana
     hitungHilal(lat, lon);
-
     startCam();
 
-  }, ()=>{
-    alert("Aktifkan GPS");
   },{
     enableHighAccuracy:true
   });
 }
 
-// ================= HILAL SIMPLE =================
+// ================= HILAL =================
 function hitungHilal(lat, lon){
-  let now = new Date();
-
-  // simulasi sederhana (biar pasti tampil dulu)
   let alt = Math.random()*10;
   let azi = Math.random()*360;
   let elo = Math.random()*15;
@@ -84,13 +89,16 @@ function hitungHilal(lat, lon){
   document.getElementById('age').innerText = age.toFixed(1);
 
   let statusEl = document.getElementById('status');
+  let prediksiEl = document.getElementById('prediksi');
 
   if(alt >= 3 && elo >= 6.4){
     statusEl.innerText = '✅ Imkan Rukyat';
     statusEl.className = 'status ok';
+    prediksiEl.innerText = "🌙 Besok kemungkinan 1 Hijriyah (awal bulan)";
   } else {
     statusEl.innerText = '❌ Belum Memenuhi';
     statusEl.className = 'status no';
+    prediksiEl.innerText = "⏳ Hilal belum terlihat (istikmal 30 hari)";
   }
 
   updateAR(azi, alt);
@@ -103,9 +111,6 @@ function startCam(){
   })
   .then(stream=>{
     document.getElementById('cam').srcObject = stream;
-  })
-  .catch(()=>{
-    console.log("Camera tidak diizinkan");
   });
 }
 
