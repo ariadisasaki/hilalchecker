@@ -27,31 +27,37 @@ function capitalize(s){
 
 // ================= HIJRIYAH =================
 function getHijri(){
-function getHijri(){
   let today = new Date();
 
-  let hijri = new Intl.DateTimeFormat('en-SA-u-ca-islamic', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(today);
+  let jd = Math.floor((today / 86400000) + 2440587.5);
 
-  // Translasi ke Indonesia
-  hijri = hijri
-    .replace('Muharram','Muharram')
-    .replace('Safar','Safar')
-    .replace('Rabiʻ I','Rabiul Awal')
-    .replace('Rabiʻ II','Rabiul Akhir')
-    .replace('Jumada I','Jumadil Awal')
-    .replace('Jumada II','Jumadil Akhir')
-    .replace('Rajab','Rajab')
-    .replace('Shaʻban','Syaban')
-    .replace('Ramadan','Ramadhan')
-    .replace('Shawwal','Syawal')
-    .replace('Dhuʻl-Qiʻdah','Zulkaidah')
-    .replace('Dhuʻl-Hijjah','Zulhijjah');
+  let l = jd - 1948440 + 10632;
+  let n = Math.floor((l - 1) / 10631);
+  l = l - 10631 * n + 354;
 
-  document.getElementById('hijri').innerText = "🕌 " + hijri + " H";
+  let j = (Math.floor((10985 - l) / 5316)) *
+          (Math.floor((50 * l) / 17719)) +
+          (Math.floor(l / 5670)) *
+          (Math.floor((43 * l) / 15238));
+
+  l = l - (Math.floor((30 - j) / 15)) *
+      (Math.floor((17719 * j) / 50)) -
+      (Math.floor(j / 16)) *
+      (Math.floor((15238 * j) / 43)) + 29;
+
+  let m = Math.floor((24 * l) / 709);
+  let d = l - Math.floor((709 * m) / 24);
+  let y = 30 * n + j - 30;
+
+  const bulanHijri = [
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
+
+  let hasil = `${d} ${bulanHijri[m-1]} ${y} H`;
+
+  document.getElementById('hijri').innerText = "🕌 " + hasil;
 }
 
 // ================= GPS =================
