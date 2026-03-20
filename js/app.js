@@ -1,7 +1,10 @@
+console.log("APP VERSION FINAL - NO HIJRI BUG");
+
+// ================= INIT =================
 window.onload = () => {
   startClock();
+  getHijri(); // langsung jalan
   getLocation();
-  getHijri();
 };
 
 // ================= JAM =================
@@ -25,11 +28,12 @@ function capitalize(s){
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// ================= HIJRIYAH =================
+// ================= HIJRIYAH FIX =================
 function getHijri(){
-  let today = new Date();
+  console.log("Hijriyah manual aktif");
 
-  let jd = Math.floor((today / 86400000) + 2440587.5);
+  let today = new Date();
+  let jd = Math.floor((today.getTime() / 86400000) + 2440587.5);
 
   let l = jd - 1948440 + 10632;
   let n = Math.floor((l - 1) / 10631);
@@ -49,15 +53,14 @@ function getHijri(){
   let d = l - Math.floor((709 * m) / 24);
   let y = 30 * n + j - 30;
 
-  const bulanHijri = [
+  const bulan = [
     "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
     "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
     "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
   ];
 
-  let hasil = `${d} ${bulanHijri[m-1]} ${y} H`;
-
-  document.getElementById('hijri').innerText = "🕌 " + hasil;
+  document.getElementById('hijri').innerText =
+    "🕌 " + d + " " + bulan[m-1] + " " + y + " H";
 }
 
 // ================= GPS =================
@@ -93,22 +96,14 @@ function getLocation(){
     hitungHilal(lat, lon);
     startCam();
 
-  }, (err)=>{
+  }, ()=>{
+    document.getElementById('loc').innerText = "❌ GPS ditolak";
 
-    // 🔴 JIKA GPS GAGAL
-    document.getElementById('loc').innerText = "❌ Izin lokasi ditolak";
-    document.getElementById('lokasi').innerText = "Aktifkan GPS di browser";
-
-    // fallback pakai lokasi default (Mataram)
-    let lat = -8.5833;
-    let lon = 116.1167;
-
-    hitungHilal(lat, lon);
+    // fallback Mataram
+    hitungHilal(-8.5833,116.1167);
     startCam();
-
   },{
-    enableHighAccuracy:true,
-    timeout:10000
+    enableHighAccuracy:true
   });
 }
 
@@ -130,11 +125,11 @@ function hitungHilal(lat, lon){
   if(alt >= 3 && elo >= 6.4){
     statusEl.innerText = '✅ Imkan Rukyat';
     statusEl.className = 'status ok';
-    prediksiEl.innerText = "🌙 Besok kemungkinan 1 Hijriyah (awal bulan)";
+    prediksiEl.innerText = "🌙 Besok kemungkinan awal bulan Hijriyah";
   } else {
     statusEl.innerText = '❌ Belum Memenuhi';
     statusEl.className = 'status no';
-    prediksiEl.innerText = "⏳ Hilal belum terlihat (istikmal 30 hari)";
+    prediksiEl.innerText = "⏳ Hilal belum terlihat";
   }
 
   updateAR(azi, alt);
@@ -147,7 +142,8 @@ function startCam(){
   })
   .then(stream=>{
     document.getElementById('cam').srcObject = stream;
-  });
+  })
+  .catch(()=>{});
 }
 
 // ================= AR =================
