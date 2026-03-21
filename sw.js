@@ -1,18 +1,25 @@
-self.addEventListener('install', e => {
+const CACHE_NAME = "hilal-app-v1";
+
+const urlsToCache = [
+  "/",
+  "/index.html",
+  "/css/style.css",
+  "/js/app.js",
+  "/icon.png"
+];
+
+self.addEventListener("install", e=>{
   e.waitUntil(
-    caches.open('hilal-cache').then(cache => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/css/style.css',
-        '/js/app.js'
-      ]);
+    caches.open(CACHE_NAME).then(cache=>{
+      return cache.addAll(urlsToCache);
     })
   );
 });
 
-self.addEventListener('fetch', e => {
+self.addEventListener("fetch", e=>{
   e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
+    caches.match(e.request).then(res=>{
+      return res || fetch(e.request);
+    })
   );
 });
