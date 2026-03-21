@@ -44,7 +44,11 @@ function startClock(){
 // ================= HIJRIYAH =================
 function getHijri(lat, lon){
   let now = new Date();
-  let maghrib = 18 + (lon/180);
+  let maghribData = hitungMaghrib(lat, lon);
+  let maghrib = 18; // fallback
+  if(maghribData){
+    maghrib = maghribData.jam + maghribData.menit/60;
+  }
   let jam = now.getHours() + now.getMinutes()/60;
   let tambahHari = jam >= maghrib ? 1 : 0;
 
@@ -225,6 +229,63 @@ function getLocation(){
     statusEl.className = 'status';
     prediksiEl.innerText = "📅 Masih pertengahan bulan";
   }
+}
+
+// ================ HITUNG MAGHRIB ================
+function hitungMaghrib(lat, lon){
+  const now = new Date();
+
+  const rad = Math.PI / 180;
+  const deg = 180 / Math.PI;
+
+  // ================= JULIAN DAY =================
+  const JD = (now / 86400000) + 2440587.5;
+  const T = (JD - 2451545.0) / 36525;
+
+  // ================= POSISI MATAHARI =================
+  let L0 = (280.46646 + 36000.76983 * T) % 360;
+  let M  = 357.52911 + 35999.05029 * T;
+
+  let C = (1.914602 - 0.004817*T) * Math.sin(M*rad)
+        + (0.019993 - 0.000101*T) * Math.sin(2*M*rad)
+        + 0.000289 * Math.sin(3*M*rad);
+
+  let lambda = L0 + C;
+
+  let epsilon = 23.44; // kemiringan bumi
+
+  let sunDec = Math.asin(Math.sin(epsilon*rad) * Math.sin(lambda*rad));
+
+  // ================= HITUNG HOUR ANGLE =================
+  let h0 = -0.833 * rad;
+
+  let cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(sunDec)) /
+             (Math.cos(lat*rad)*Math.cos(sunDec));
+
+  if(cosH < -1 || cosH > 1){
+    return null; // matahari tidak terbenam (kasus ekstrem)
+  }
+
+  let H = Math.acos(cosH); // radian
+
+  // ================= LOCAL SOLAR TIME =================
+  let Hdeg = H * deg;
+
+  let maghribTime = 12 + (Hdeg / 15);
+
+  // ================= KOREKSI LONGITUDE =================
+  let timezone = Math.round(lon / 15);
+  maghribTime = maghribTime + timezone - (lon / 15);
+
+  // ================= FORMAT JAM =================
+  let jam = Math.floor(maghribTime);
+  let menit = Math.floor((maghribTime - jam) * 60);
+
+  return {
+    jam,
+    menit,
+    decimal: maghribTime
+  };
 }
 
 // ================= SENSOR =================
