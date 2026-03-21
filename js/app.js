@@ -1,4 +1,4 @@
-console.log("FINAL PERFECT AR - HILAL");
+console.log("FINAL PERFECT AR + AUDIO - HILAL");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -13,6 +13,11 @@ let hilalData = {
 // smoothing marker
 let smoothX = 0;
 let smoothY = 0;
+
+// ================= AUDIO + FEEDBACK =================
+let audioCtx = null;
+let lastBeepTime = 0;
+let locked = false;
 
 // ================= INIT =================
 window.onload = () => {
@@ -103,23 +108,19 @@ function getLocation(){
 function hitungHilal(lat, lon){
   let now = new Date();
 
-  // simulasi stabil
   let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
   let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
   let age = (now.getHours() % 24) + now.getMinutes()/60;
 
-  // simpan untuk AR
   hilalData.alt = alt;
   hilalData.azi = azi;
 
-  // ================= UPDATE UI DATA =================
   document.getElementById('alt').innerText = alt.toFixed(2);
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
 
-  // ================= STATUS HILAL (INI YANG HILANG) =================
   let statusEl = document.getElementById('status');
   let prediksiEl = document.getElementById('prediksi');
 
@@ -179,7 +180,7 @@ function initSensor(){
   });
 }
 
-// ================= AR FINAL FIX =================
+// ================= AR + AUDIO =================
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
@@ -190,55 +191,79 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
-  // ================= SELISIH =================
   let deltaAz = hilalData.azi - alpha;
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
   let deltaAlt = hilalData.alt - gamma;
 
-  // ================= ERROR TOTAL =================
   let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  // ================= DEAD ZONE =================
-  if(Math.abs(deltaAz) < 1) deltaAz = 0;
-  if(Math.abs(deltaAlt) < 1) deltaAlt = 0;
+  let x = width/2 + deltaAz * 2;
+  let y = height/2 - deltaAlt * 3;
 
-  // ================= ADAPTIVE SPEED =================
-  let speedFactor = Math.max(0.5, Math.min(2, error / 10));
-
-  // ================= KONVERSI =================
-  let x = width/2 + deltaAz * 2 * speedFactor;
-  let y = height/2 - deltaAlt * 3 * speedFactor;
-
-  // ================= BATAS =================
   x = Math.max(20, Math.min(width - 20, x));
   y = Math.max(20, Math.min(height - 20, y));
 
-  // ================= SUPER SMOOTH =================
   smoothX += (x - smoothX) * 0.1;
   smoothY += (y - smoothY) * 0.1;
 
-  // ================= LOCK TARGET =================
+  // ================= FEEDBACK =================
+  let now = Date.now();
+
   if(error < 4){
-    smoothX += ((width/2) - smoothX) * 0.2;
-    smoothY += ((height/2) - smoothY) * 0.2;
+    marker.style.color = "lime";
+
+    if(!locked){
+      playBeep(1200, 200);
+      navigator.vibrate && navigator.vibrate(200);
+      locked = true;
+    }
 
     statusText.innerText = "🎯 Tepat (Hilal ditemukan)";
     statusText.style.background = "#1f8f4e";
 
-  } else if(error < 12){
-    statusText.innerText = "⚠️ Hampir tepat";
-    statusText.style.background = "#b58b00";
-
   } else {
-    statusText.innerText = "🔍 Arahkan ke hilal";
-    statusText.style.background = "rgba(0,0,0,0.6)";
+    marker.style.color = "white";
+    locked = false;
+
+    if(now - lastBeepTime > 600 - Math.min(error*40, 500)){
+      playBeep(500, 80);
+      lastBeepTime = now;
+    }
+
+    if(error < 12){
+      statusText.innerText = "⚠️ Hampir tepat";
+      statusText.style.background = "#b58b00";
+    } else {
+      statusText.innerText = "🔍 Arahkan ke hilal";
+      statusText.style.background = "rgba(0,0,0,0.6)";
+    }
   }
 
-  // ================= POSISI =================
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
+}
+
+// ================= AUDIO =================
+function playBeep(freq = 800, duration = 100){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.frequency.value = freq;
+  osc.type = "sine";
+
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration/1000);
 }
 
 // ================= CAMERA =================
@@ -246,9 +271,6 @@ function startCam(){
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
   .then(s=>{
     document.getElementById('cam').srcObject=s;
-  })
-  .catch(()=>{
-    console.log("Kamera tidak diizinkan");
   });
 }
 
@@ -257,8 +279,6 @@ function requestNotif(){
   Notification.requestPermission().then(p=>{
     if(p==="granted"){
       showNotif("Notifikasi Aktif","🔔 Notifikasi berhasil diaktifkan");
-    } else {
-      alert("Notifikasi ditolak");
     }
   });
 }
