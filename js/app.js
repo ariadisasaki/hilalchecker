@@ -212,34 +212,28 @@ function updateAR(alpha, beta, gamma){
   let now = Date.now();
 
   if(error < 4){
-    marker.style.color = "lime";
+  marker.style.color = "lime";
 
-    if(!locked){
-      playBeep(1200, 200);
-      navigator.vibrate && navigator.vibrate(200);
-      locked = true;
-    }
-
-    statusText.innerText = "🎯 Tepat (Hilal ditemukan)";
-    statusText.style.background = "#1f8f4e";
-
-  } else {
-    marker.style.color = "white";
-    locked = false;
-
-    if(now - lastBeepTime > 600 - Math.min(error*40, 500)){
-      playBeep(500, 80);
-      lastBeepTime = now;
-    }
-
-    if(error < 12){
-      statusText.innerText = "⚠️ Hampir tepat";
-      statusText.style.background = "#b58b00";
-    } else {
-      statusText.innerText = "🔍 Arahkan ke hilal";
-      statusText.style.background = "rgba(0,0,0,0.6)";
-    }
+  if(!locked){
+    playBeep(1200, 200); // 🔊 bunyi SEKALI
+    navigator.vibrate && navigator.vibrate(200);
+    locked = true;
   }
+
+  statusText.innerText = "🎯 Tepat (Hilal ditemukan)";
+  statusText.style.background = "#1f8f4e";
+
+} else {
+  marker.style.color = "white";
+  locked = false;
+  if(error < 12){
+    statusText.innerText = "⚠️ Hampir tepat";
+    statusText.style.background = "#b58b00";
+  } else {
+    statusText.innerText = "🔍 Arahkan ke hilal";
+    statusText.style.background = "rgba(0,0,0,0.6)";
+  }
+}
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
