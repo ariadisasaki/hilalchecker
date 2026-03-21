@@ -1,4 +1,4 @@
-console.log("FINAL UPGRADE AR - HILAL");
+console.log("FINAL AR FIXED - HILAL");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -103,13 +103,12 @@ function getLocation(){
 function hitungHilal(lat, lon){
   let now = new Date();
 
-  // simulasi (nanti bisa di-upgrade ke real astronomi)
+  // simulasi (aman, tidak kosong)
   let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
   let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
   let age = (now.getHours() % 24) + now.getMinutes()/60;
 
-  // simpan ke global AR
   hilalData.alt = alt;
   hilalData.azi = azi;
 
@@ -150,7 +149,7 @@ function hitungHilal(lat, lon){
   }
 }
 
-// ================= SENSOR (UPGRADE SMOOTH) =================
+// ================= SENSOR =================
 function initSensor(){
   let lastAlpha = 0;
   let lastBeta = 0;
@@ -161,8 +160,8 @@ function initSensor(){
     let beta = e.beta || 0;
 
     // smoothing sensor
-    alpha = lastAlpha + (alpha - lastAlpha) * 0.2;
-    beta = lastBeta + (beta - lastBeta) * 0.2;
+    alpha = lastAlpha + (alpha - lastAlpha) * 0.15;
+    beta = lastBeta + (beta - lastBeta) * 0.15;
 
     lastAlpha = alpha;
     lastBeta = beta;
@@ -171,7 +170,7 @@ function initSensor(){
   });
 }
 
-// ================= AR (UPGRADE REALISTIS) =================
+// ================= AR FIX FINAL =================
 function updateAR(alpha, beta){
   let marker = document.getElementById('marker');
   let video = document.getElementById('cam');
@@ -181,24 +180,25 @@ function updateAR(alpha, beta){
   let rect = video.getBoundingClientRect();
 
   // ================= AZIMUTH =================
-  let diffAzi = hilalData.azi - alpha;
+  let deltaAz = hilalData.azi - alpha;
 
-  if(diffAzi > 180) diffAzi -= 360;
-  if(diffAzi < -180) diffAzi += 360;
-
-  let x = rect.width/2 + (diffAzi * 3);
+  if(deltaAz > 180) deltaAz -= 360;
+  if(deltaAz < -180) deltaAz += 360;
 
   // ================= ALTITUDE =================
-  let diffAlt = hilalData.alt - beta;
-  let y = rect.height/2 - (diffAlt * 5);
+  let deltaAlt = hilalData.alt - beta;
 
-  // ================= BATAS =================
+  // ================= MAPPING =================
+  let x = rect.width / 2 + deltaAz * 4;
+  let y = rect.height / 2 - deltaAlt * 6;
+
+  // ================= CLAMP =================
   x = Math.max(0, Math.min(rect.width, x));
   y = Math.max(0, Math.min(rect.height, y));
 
   // ================= SMOOTH =================
-  smoothX += ((rect.left + x) - smoothX) * 0.2;
-  smoothY += ((rect.top + y) - smoothY) * 0.2;
+  smoothX += ((rect.left + x) - smoothX) * 0.15;
+  smoothY += ((rect.top + y) - smoothY) * 0.15;
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
