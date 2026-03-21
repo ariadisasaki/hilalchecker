@@ -169,7 +169,6 @@ function initSensor(){
     let alpha = e.alpha || 0;
     let gamma = e.gamma || 0;
 
-    // smoothing
     alpha = lastAlpha + (alpha - lastAlpha) * 0.15;
     gamma = lastGamma + (gamma - lastGamma) * 0.15;
 
@@ -184,19 +183,18 @@ function initSensor(){
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
+  const statusText = document.getElementById('arStatus');
 
   if(!marker || !wrapper) return;
 
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
-  // ================= AZIMUTH =================
+  // ================= SELISIH =================
   let deltaAz = hilalData.azi - alpha;
-
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
-  // ================= ALTITUDE (PAKAI GAMMA) =================
   let deltaAlt = hilalData.alt - gamma;
 
   // ================= KONVERSI =================
@@ -210,6 +208,26 @@ function updateAR(alpha, beta, gamma){
   // ================= SMOOTH =================
   smoothX += (x - smoothX) * 0.2;
   smoothY += (y - smoothY) * 0.2;
+
+  // ================= DETEKSI AKURASI =================
+  let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
+
+  if(error < 5){
+    // LOCK ke tengah
+    smoothX += ((width/2) - smoothX) * 0.3;
+    smoothY += ((height/2) - smoothY) * 0.3;
+
+    statusText.innerText = "🎯 Tepat (Hilal ditemukan)";
+    statusText.style.background = "#1f8f4e";
+
+  } else if(error < 15){
+    statusText.innerText = "⚠️ Hampir tepat";
+    statusText.style.background = "#b58b00";
+
+  } else {
+    statusText.innerText = "🔍 Arahkan ke hilal";
+    statusText.style.background = "rgba(0,0,0,0.6)";
+  }
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
