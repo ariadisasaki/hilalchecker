@@ -197,30 +197,37 @@ function updateAR(alpha, beta, gamma){
 
   let deltaAlt = hilalData.alt - gamma;
 
+  // ================= ERROR TOTAL =================
+  let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
+
+  // ================= DEAD ZONE =================
+  if(Math.abs(deltaAz) < 1) deltaAz = 0;
+  if(Math.abs(deltaAlt) < 1) deltaAlt = 0;
+
+  // ================= ADAPTIVE SPEED =================
+  let speedFactor = Math.max(0.5, Math.min(2, error / 10));
+
   // ================= KONVERSI =================
-  let x = width/2 + deltaAz * 3;
-  let y = height/2 - deltaAlt * 4;
+  let x = width/2 + deltaAz * 2 * speedFactor;
+  let y = height/2 - deltaAlt * 3 * speedFactor;
 
   // ================= BATAS =================
   x = Math.max(20, Math.min(width - 20, x));
   y = Math.max(20, Math.min(height - 20, y));
 
-  // ================= SMOOTH =================
-  smoothX += (x - smoothX) * 0.2;
-  smoothY += (y - smoothY) * 0.2;
+  // ================= SUPER SMOOTH =================
+  smoothX += (x - smoothX) * 0.1;
+  smoothY += (y - smoothY) * 0.1;
 
-  // ================= DETEKSI AKURASI =================
-  let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
-
-  if(error < 5){
-    // LOCK ke tengah
-    smoothX += ((width/2) - smoothX) * 0.3;
-    smoothY += ((height/2) - smoothY) * 0.3;
+  // ================= LOCK TARGET =================
+  if(error < 4){
+    smoothX += ((width/2) - smoothX) * 0.2;
+    smoothY += ((height/2) - smoothY) * 0.2;
 
     statusText.innerText = "🎯 Tepat (Hilal ditemukan)";
     statusText.style.background = "#1f8f4e";
 
-  } else if(error < 15){
+  } else if(error < 12){
     statusText.innerText = "⚠️ Hampir tepat";
     statusText.style.background = "#b58b00";
 
@@ -229,6 +236,7 @@ function updateAR(alpha, beta, gamma){
     statusText.style.background = "rgba(0,0,0,0.6)";
   }
 
+  // ================= POSISI =================
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 }
