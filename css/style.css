@@ -24,6 +24,25 @@ body{
   position:relative; /* penting untuk marker AR */
 }
 
+.card{
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn{
+  from{
+    opacity:0;
+    transform:translateY(10px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.card video{
+  position:relative;
+}
+
 .data-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -62,11 +81,24 @@ video{
   z-index:1;
 }
 
+video{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+
 #marker{
   position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
   font-size:30px;
   z-index:2;
   pointer-events:none;
+}
+
+#marker{
+  transition: all 0.1s linear;
 }
 
 button{
@@ -74,8 +106,17 @@ button{
   padding:12px;
   border:none;
   border-radius:12px;
-  background:#3a7bfd;
+  background:linear-gradient(135deg,#3a7bfd,#00c6ff);
   color:#fff;
   font-weight:600;
   margin-top:8px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
+  transition:0.2s;
 }
+
+button:active{
+  transform:scale(0.97);
+}
+
+background: radial-gradient(circle at top, #0b1a3a, #020611);
+background-attachment: fixed;
