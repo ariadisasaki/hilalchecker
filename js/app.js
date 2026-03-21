@@ -1,15 +1,28 @@
-console.log("FINAL SAFE - HILAL & HIJRIYAH");
+console.log("FINAL UPGRADE AR - HILAL");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
 let notifSudah = false;
+
+// data hilal untuk AR
+let hilalData = {
+  alt: 0,
+  azi: 0
+};
+
+// smoothing marker
+let smoothX = 0;
+let smoothY = 0;
 
 // ================= INIT =================
 window.onload = () => {
   startClock();
   getLocation();
   initSensor();
-  setTimeout(()=>{ showNotif("Hilal Checker","Aplikasi siap digunakan 🌙"); },2000);
+
+  setTimeout(()=>{
+    showNotif("Hilal Checker","Aplikasi siap digunakan 🌙");
+  },2000);
 };
 
 // ================= JAM =================
@@ -75,7 +88,8 @@ function getLocation(){
     getHijri(lat, lon);
     hitungHilal(lat, lon);
     startCam();
-  }, ()=>{ // fallback jika GPS ditolak
+
+  }, ()=>{
     let lat=-8.5833, lon=116.1167;
     document.getElementById('loc').innerText=`${lat}, ${lon}`;
     document.getElementById('lokasi').innerText="Gunakan lokasi default";
@@ -87,12 +101,17 @@ function getLocation(){
 
 // ================= HILAL =================
 function hitungHilal(lat, lon){
-  // Hisab Lokal akurat (estimasi BMKG level)
   let now = new Date();
+
+  // simulasi (nanti bisa di-upgrade ke real astronomi)
   let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
   let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
   let age = (now.getHours() % 24) + now.getMinutes()/60;
+
+  // simpan ke global AR
+  hilalData.alt = alt;
+  hilalData.azi = azi;
 
   document.getElementById('alt').innerText=alt.toFixed(2);
   document.getElementById('azi').innerText=azi.toFixed(2);
@@ -113,7 +132,12 @@ function hitungHilal(lat, lon){
       statusEl.innerText='✅ Imkan Rukyat';
       statusEl.className='status ok';
       prediksiEl.innerText=`🌙 Besok kemungkinan awal bulan ${nextMonth}`;
-      if(!notifSudah){showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`); notifSudah=true;}
+
+      if(!notifSudah){
+        showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
+        notifSudah=true;
+      }
+
     } else {
       statusEl.innerText='❌ Belum Memenuhi';
       statusEl.className='status no';
@@ -126,34 +150,79 @@ function hitungHilal(lat, lon){
   }
 }
 
-// ================= SENSOR =================
+// ================= SENSOR (UPGRADE SMOOTH) =================
 function initSensor(){
-  window.addEventListener("deviceorientation",e=>{
-    updateAR(e.alpha||0,e.beta||0);
+  let lastAlpha = 0;
+  let lastBeta = 0;
+
+  window.addEventListener("deviceorientation", e => {
+
+    let alpha = e.alpha || 0;
+    let beta = e.beta || 0;
+
+    // smoothing sensor
+    alpha = lastAlpha + (alpha - lastAlpha) * 0.2;
+    beta = lastBeta + (beta - lastBeta) * 0.2;
+
+    lastAlpha = alpha;
+    lastBeta = beta;
+
+    updateAR(alpha, beta);
   });
 }
 
-// ================= AR =================
-function updateAR(h,t){
-  let m=document.getElementById('marker');
-  let x=window.innerWidth/2+(0-h)*4;
-  let y=window.innerHeight/2-(0-t)*4;
-  m.style.left=x+"px";
-  m.style.top=y+"px";
+// ================= AR (UPGRADE REALISTIS) =================
+function updateAR(alpha, beta){
+  let marker = document.getElementById('marker');
+  let video = document.getElementById('cam');
+
+  if(!marker || !video) return;
+
+  let rect = video.getBoundingClientRect();
+
+  // ================= AZIMUTH =================
+  let diffAzi = hilalData.azi - alpha;
+
+  if(diffAzi > 180) diffAzi -= 360;
+  if(diffAzi < -180) diffAzi += 360;
+
+  let x = rect.width/2 + (diffAzi * 3);
+
+  // ================= ALTITUDE =================
+  let diffAlt = hilalData.alt - beta;
+  let y = rect.height/2 - (diffAlt * 5);
+
+  // ================= BATAS =================
+  x = Math.max(0, Math.min(rect.width, x));
+  y = Math.max(0, Math.min(rect.height, y));
+
+  // ================= SMOOTH =================
+  smoothX += ((rect.left + x) - smoothX) * 0.2;
+  smoothY += ((rect.top + y) - smoothY) * 0.2;
+
+  marker.style.left = smoothX + "px";
+  marker.style.top = smoothY + "px";
 }
 
 // ================= CAMERA =================
 function startCam(){
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-  .then(s=>{document.getElementById('cam').srcObject=s;})
-  .catch(()=>{});
+  .then(s=>{
+    document.getElementById('cam').srcObject=s;
+  })
+  .catch(()=>{
+    console.log("Kamera tidak diizinkan");
+  });
 }
 
 // ================= NOTIFIKASI =================
 function requestNotif(){
   Notification.requestPermission().then(p=>{
-    if(p==="granted"){showNotif("Notifikasi Aktif","🔔 Notifikasi berhasil diaktifkan");}
-    else{alert("Notifikasi ditolak");}
+    if(p==="granted"){
+      showNotif("Notifikasi Aktif","🔔 Notifikasi berhasil diaktifkan");
+    } else {
+      alert("Notifikasi ditolak");
+    }
   });
 }
 
