@@ -103,19 +103,60 @@ function getLocation(){
 function hitungHilal(lat, lon){
   let now = new Date();
 
-  // sementara masih simulasi stabil
+  // simulasi stabil
   let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
   let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
   let age = (now.getHours() % 24) + now.getMinutes()/60;
 
+  // simpan untuk AR
   hilalData.alt = alt;
   hilalData.azi = azi;
 
-  document.getElementById('alt').innerText=alt.toFixed(2);
-  document.getElementById('azi').innerText=azi.toFixed(2);
-  document.getElementById('elo').innerText=elo.toFixed(2);
-  document.getElementById('age').innerText=age.toFixed(1);
+  // ================= UPDATE UI DATA =================
+  document.getElementById('alt').innerText = alt.toFixed(2);
+  document.getElementById('azi').innerText = azi.toFixed(2);
+  document.getElementById('elo').innerText = elo.toFixed(2);
+  document.getElementById('age').innerText = age.toFixed(1);
+
+  // ================= STATUS HILAL (INI YANG HILANG) =================
+  let statusEl = document.getElementById('status');
+  let prediksiEl = document.getElementById('prediksi');
+
+  const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
+  let nextMonth = bulan[(hijriMonthIndex+1)%12];
+
+  let teks = document.getElementById('hijri').innerText;
+  let tanggalHijri = parseInt(teks.split(" ")[1]);
+
+  if(!tanggalHijri){
+    statusEl.innerText = "⏳ Menunggu data Hijriyah...";
+    prediksiEl.innerText = "⏳ Memuat...";
+    return;
+  }
+
+  if(tanggalHijri >= 29){
+    if(alt >= 3 && elo >= 6.4){
+      statusEl.innerText = '✅ Imkan Rukyat';
+      statusEl.className = 'status ok';
+      prediksiEl.innerText = `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
+
+      if(!notifSudah){
+        showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
+        notifSudah = true;
+      }
+
+    } else {
+      statusEl.innerText = '❌ Belum Memenuhi';
+      statusEl.className = 'status no';
+      prediksiEl.innerText = "⏳ Hilal belum terlihat (istikmal ke-30)";
+    }
+
+  } else {
+    statusEl.innerText = 'ℹ️ Belum Akhir Bulan';
+    statusEl.className = 'status';
+    prediksiEl.innerText = "📅 Masih pertengahan bulan Hijriyah";
+  }
 }
 
 // ================= SENSOR =================
