@@ -2,6 +2,7 @@ body{
   margin:0;
   font-family:'Poppins',sans-serif;
   background: radial-gradient(circle at top, #0b1a3a, #020611);
+  background-attachment: fixed;
   color:#fff;
 }
 
@@ -21,10 +22,7 @@ body{
   margin-bottom:8px;
   box-shadow:0 5px 20px rgba(0,0,0,0.3);
   text-align:center;
-  position:relative; /* penting untuk marker AR */
-}
-
-.card{
+  position:relative;
   animation: fadeIn 0.5s ease;
 }
 
@@ -76,15 +74,11 @@ body{
 
 video{
   width:100%;
+  height:220px;
+  object-fit:cover;
   border-radius:15px;
   display:block;
   z-index:1;
-}
-
-video{
-  width:100%;
-  height:220px;
-  object-fit:cover;
 }
 
 #marker{
@@ -95,9 +89,6 @@ video{
   font-size:30px;
   z-index:2;
   pointer-events:none;
-}
-
-#marker{
   transition: all 0.1s linear;
 }
 
@@ -117,6 +108,3 @@ button{
 button:active{
   transform:scale(0.97);
 }
-
-background: radial-gradient(circle at top, #0b1a3a, #020611);
-background-attachment: fixed;
