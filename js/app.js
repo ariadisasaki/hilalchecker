@@ -284,8 +284,8 @@ function initSensor(){
     let alpha=e.alpha||0;
     let gamma=e.gamma||0;
 
-    alpha=lastAlpha+(alpha-lastAlpha)*0.1;
-    gamma=lastGamma+(gamma-lastGamma)*0.1;
+    alpha=lastAlpha+(alpha-lastAlpha)*0.08;
+    gamma=lastGamma+(gamma-lastGamma)*0.08;
 
     lastAlpha=alpha;
     lastGamma=gamma;
@@ -311,47 +311,51 @@ function updateAR(alpha, beta, gamma){
 
   let deltaAlt = hilalData.alt - gamma;
 
-  // ================= BATASAN (ANTI LIAR) =================
-  // batasi sudut ekstrem
-  deltaAz = Math.max(-45, Math.min(45, deltaAz));
-  deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
+  // ================= BATAS KETAT =================
+  deltaAz = Math.max(-40, Math.min(40, deltaAz));
+  deltaAlt = Math.max(-20, Math.min(20, deltaAlt)); // 🔥 lebih sempit (anti liar bawah)
 
   // ================= DEAD ZONE =================
-  if(Math.abs(deltaAz) < 0.5) deltaAz = 0;
-  if(Math.abs(deltaAlt) < 0.5) deltaAlt = 0;
+  if(Math.abs(deltaAz) < 0.3) deltaAz = 0;
+  if(Math.abs(deltaAlt) < 0.3) deltaAlt = 0;
 
   let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
   // ================= POSISI TARGET =================
-  let targetX = width/2 + deltaAz * 1.5; // 🔥 diperkecil (biar tidak liar)
-  let targetY = height/2 - deltaAlt * 2; // 🔥 lebih stabil bawah
+  let targetX = width/2 + deltaAz * 1.4;
+  let targetY = height/2 - deltaAlt * 1.5; // 🔥 dikurangi drastis
 
-  // clamp ke layar
-  targetX = Math.max(20, Math.min(width - 20, targetX));
-  targetY = Math.max(20, Math.min(height - 20, targetY));
+  // clamp aman
+  targetX = Math.max(30, Math.min(width - 30, targetX));
+  targetY = Math.max(40, Math.min(height - 40, targetY)); // 🔥 bawah dikunci
 
-  // ================= SMOOTHING LEBIH STABIL =================
-  let smoothing;
+  // ================= SMOOTHING BERBEDA X & Y =================
+  let smoothFactorX, smoothFactorY;
 
   if(error > 20){
-    smoothing = 0.15;
+    smoothFactorX = 0.14;
+    smoothFactorY = 0.10; // 🔥 Y lebih lambat
   } else if(error > 10){
-    smoothing = 0.10;
+    smoothFactorX = 0.10;
+    smoothFactorY = 0.08;
   } else if(error > 5){
-    smoothing = 0.07;
+    smoothFactorX = 0.07;
+    smoothFactorY = 0.05;
   } else if(error > 2){
-    smoothing = 0.04;
+    smoothFactorX = 0.04;
+    smoothFactorY = 0.03;
   } else {
-    smoothing = 0.02;
+    smoothFactorX = 0.02;
+    smoothFactorY = 0.02;
   }
 
-  smoothX += (targetX - smoothX) * smoothing;
-  smoothY += (targetY - smoothY) * smoothing;
+  smoothX += (targetX - smoothX) * smoothFactorX;
+  smoothY += (targetY - smoothY) * smoothFactorY;
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= CLEAN VISUAL =================
+  // ================= VISUAL CLEAN =================
   marker.style.background = "transparent";
   marker.style.border = "none";
   marker.style.boxShadow = "none";
