@@ -233,18 +233,19 @@ function getLocation(){
 
 // ================ HITUNG MAGHRIB ================
 function hitungMaghrib(lat, lon){
-  const now = new Date();
 
-  const rad = Math.PI / 180;
-  const deg = 180 / Math.PI;
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
+
+  const now = new Date();
 
   // ================= JULIAN DAY =================
   const JD = (now / 86400000) + 2440587.5;
   const T = (JD - 2451545.0) / 36525;
 
   // ================= POSISI MATAHARI =================
-  let L0 = (280.46646 + 36000.76983 * T) % 360;
-  let M  = 357.52911 + 35999.05029 * T;
+  let L0 = (280.46646 + 36000.76983*T) % 360;
+  let M  = 357.52911 + 35999.05029*T;
 
   let C = (1.914602 - 0.004817*T) * Math.sin(M*rad)
         + (0.019993 - 0.000101*T) * Math.sin(2*M*rad)
@@ -252,39 +253,40 @@ function hitungMaghrib(lat, lon){
 
   let lambda = L0 + C;
 
-  let epsilon = 23.44; // kemiringan bumi
+  let epsilon = 23.44;
 
-  let sunDec = Math.asin(Math.sin(epsilon*rad) * Math.sin(lambda*rad));
+  let delta = Math.asin(Math.sin(epsilon*rad) * Math.sin(lambda*rad));
 
-  // ================= HITUNG HOUR ANGLE =================
+  // ================= SUDUT TERBENAM =================
   let h0 = -0.833 * rad;
 
-  let cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(sunDec)) /
-             (Math.cos(lat*rad)*Math.cos(sunDec));
+  let cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(delta)) /
+             (Math.cos(lat*rad)*Math.cos(delta));
 
   if(cosH < -1 || cosH > 1){
-    return null; // matahari tidak terbenam (kasus ekstrem)
+    return null;
   }
 
   let H = Math.acos(cosH); // radian
 
-  // ================= LOCAL SOLAR TIME =================
   let Hdeg = H * deg;
 
-  let maghribTime = 12 + (Hdeg / 15);
+  // ================= WAKTU =================
+  let waktu = 12 + (Hdeg / 15);
 
-  // ================= KOREKSI LONGITUDE =================
+  // ================= ZONA WAKTU =================
   let timezone = Math.round(lon / 15);
-  maghribTime = maghribTime + timezone - (lon / 15);
 
-  // ================= FORMAT JAM =================
-  let jam = Math.floor(maghribTime);
-  let menit = Math.floor((maghribTime - jam) * 60);
+  let maghrib = waktu + timezone - (lon / 15);
+
+  // ================= FORMAT =================
+  let jam = Math.floor(maghrib);
+  let menit = Math.floor((maghrib - jam) * 60);
 
   return {
     jam,
     menit,
-    decimal: maghribTime
+    decimal: maghrib
   };
 }
 
