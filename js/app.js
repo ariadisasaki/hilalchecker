@@ -324,15 +324,15 @@ function updateAR(alpha, beta, gamma){
   let smoothing;
 
   if(error > 25){
-    smoothing = 0.18; // cepat (jauh)
+    smoothing = 0.18;
   } else if(error > 10){
-    smoothing = 0.12; // sedang
+    smoothing = 0.12;
   } else if(error > 5){
-    smoothing = 0.08; // mulai pelan
+    smoothing = 0.08;
   } else if(error > 2){
-    smoothing = 0.05; // halus banget
+    smoothing = 0.05;
   } else {
-    smoothing = 0.02; // super halus (ngunci)
+    smoothing = 0.02; // super halus saat mendekati
   }
 
   smoothX += (targetX - smoothX) * smoothing;
@@ -341,13 +341,13 @@ function updateAR(alpha, beta, gamma){
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= WARNA + STATUS =================
-  let now = Date.now();
-
+  // ================= WARNA + AUDIO (NO SPAM) =================
   if(error < 3){
+    // 🟢 TEPAT
     marker.style.background = "lime";
     marker.style.boxShadow = "0 0 20px lime";
 
+    // 🔊 bunyi HANYA SEKALI saat masuk area target
     if(!locked){
       playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(200);
@@ -355,24 +355,16 @@ function updateAR(alpha, beta, gamma){
     }
 
   } else if(error < 10){
+    // 🟡 MENDEKATI (TANPA AUDIO)
     marker.style.background = "yellow";
     marker.style.boxShadow = "0 0 15px yellow";
-
-    if(now - lastBeepTime > 800){
-      playBeep(900, 120);
-      lastBeepTime = now;
-    }
 
     locked = false;
 
   } else {
+    // 🔴 JAUH (TANPA AUDIO)
     marker.style.background = "red";
     marker.style.boxShadow = "0 0 10px red";
-
-    if(now - lastBeepTime > 1500){
-      playBeep(600, 80);
-      lastBeepTime = now;
-    }
 
     locked = false;
   }
