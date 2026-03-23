@@ -141,7 +141,7 @@ function hitungHilal(lat, lon){
   const T = (JD-2451545)/36525;
   const epsilon = 23.439291 - 0.0130042*T;
 
-  // MATAHARI
+  // Matahari
   const L0 = (280.46646 + 36000.76983*T)%360;
   const M = 357.52911 + 35999.05029*T;
   const C = (1.914602 - 0.004817*T)*Math.sin(M*rad)
@@ -151,7 +151,7 @@ function hitungHilal(lat, lon){
   const sunRA = Math.atan2(Math.cos(epsilon*rad)*Math.sin(sunLong*rad), Math.cos(sunLong*rad))*deg;
   const sunDec = Math.asin(Math.sin(epsilon*rad)*Math.sin(sunLong*rad))*deg;
 
-  // BULAN
+  // Bulan
   const D = (297.8501921 + 445267.1114034*T)%360;
   const Lm = (218.316 + 13.176396*(JD-2451545))%360;
   const Mm = (134.963 + 13.064993*(JD-2451545))%360;
@@ -185,36 +185,37 @@ function hitungHilal(lat, lon){
   )*deg;
   const age = elo/12.19*24;
 
+  // Update DOM
   hilalData.alt = alt;
   hilalData.azi = azi;
-
   document.getElementById('alt').innerText = alt.toFixed(2);
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
 
+  // Status
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
-
   if(alt < 0){
     statusEl.innerText = "🌑 Bulan di bawah horizon";
     prediksiEl.innerText = "Tidak mungkin rukyat";
-    return;
-  }
-
-  const imkan = (alt>=3 && elo>=6.4 && age>=8);
-  const q = alt - (0.1018*Math.sqrt(elo));
-  const vis = q>0.216 ? "Mudah terlihat" : q>-0.014 ? "Terlihat dengan alat" : "Tidak terlihat";
-
-  if(tanggalHijriGlobal >= 29){
-    statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
-    prediksiEl.innerText = vis;
   } else {
-    statusEl.innerText = "ℹ️ Belum akhir bulan";
-    prediksiEl.innerText = vis;
-  }
-}
+    const imkan = (alt>=3 && elo>=6.4 && age>=8);
+    const q = alt - (0.1018*Math.sqrt(elo));
+    const vis = q>0.216 ? "Mudah terlihat" : q>-0.014 ? "Terlihat dengan alat" : "Tidak terlihat";
 
+    if(tanggalHijriGlobal >= 29){
+      statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
+      prediksiEl.innerText = vis;
+    } else {
+      statusEl.innerText = "ℹ️ Belum akhir bulan";
+      prediksiEl.innerText = vis;
+    }
+  }
+
+  // Kembalikan data agar bisa dipakai getHijri
+  return { alt, azi, elo, age };
+}
 // ================= MAGHRIB =================
 function hitungMaghrib(lat, lon){
   const now = new Date();
