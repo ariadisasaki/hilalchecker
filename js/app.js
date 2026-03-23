@@ -180,15 +180,50 @@ function hitungHilal(lat, lon){
     Math.sin(epsilon*rad)*Math.sin(sunLong*rad)
   ) * deg;
 
-  // ================= BULAN (Meeus Improved) =================
+  // ================= HILAL - MEEUS FIX =================
+function hitungHilal(lat, lon){
+  const now = new Date();
+  const JD = (now/86400000) + 2440587.5;
+
+  const year = now.getFullYear();
+  const t = (year - 2000) / 100;
+  const deltaT = 64.7 + 64.5*t + 0.21*t*t;
+  const JDE = JD + (deltaT / 86400);
+
+  const T = (JDE - 2451545.0) / 36525;
+
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
+
+  const epsilon = 23.439291 - 0.0130042*T;
+
+  // ================= MATAHARI =================
+  const L0 = (280.46646 + 36000.76983*T) % 360;
+  const M  = (357.52911 + 35999.05029*T) % 360;
+
+  const C = (1.914602 - 0.004817*T - 0.000014*T*T)*Math.sin(M*rad)
+          + (0.019993 - 0.000101*T)*Math.sin(2*M*rad)
+          + 0.000289*Math.sin(3*M*rad);
+
+  const sunLong = L0 + C;
+
+  const sunRA = Math.atan2(
+    Math.cos(epsilon*rad)*Math.sin(sunLong*rad),
+    Math.cos(sunLong*rad)
+  ) * deg;
+
+  const sunDec = Math.asin(
+    Math.sin(epsilon*rad)*Math.sin(sunLong*rad)
+  ) * deg;
+
+  // ================= BULAN =================
   const D  = (297.8501921 + 445267.1114034*T) % 360;
   const Mm = (134.9633964 + 477198.8675055*T) % 360;
   const Ms = M;
   const F  = (93.2720950 + 483202.0175233*T) % 360;
   const Lm = (218.3164477 + 481267.88123421*T) % 360;
 
-  // 🔥 Periodic terms (ditambah banyak)
-  let lon = Lm
+  let moonLon = Lm
     + 6.289 * Math.sin(Mm*rad)
     + 1.274 * Math.sin((2*D - Mm)*rad)
     + 0.658 * Math.sin(2*D*rad)
@@ -199,21 +234,20 @@ function hitungHilal(lat, lon){
     + 0.053 * Math.sin((2*D + Mm)*rad)
     + 0.046 * Math.sin((2*D - Ms)*rad);
 
-  let latm = 
+  let moonLat = 
       5.128 * Math.sin(F*rad)
     + 0.280 * Math.sin((Mm + F)*rad)
     + 0.277 * Math.sin((Mm - F)*rad)
     + 0.173 * Math.sin((2*D - F)*rad);
 
-  // ================= KONVERSI =================
   const moonRA = Math.atan2(
-    Math.sin(lon*rad)*Math.cos(epsilon*rad) - Math.tan(latm*rad)*Math.sin(epsilon*rad),
-    Math.cos(lon*rad)
+    Math.sin(moonLon*rad)*Math.cos(epsilon*rad) - Math.tan(moonLat*rad)*Math.sin(epsilon*rad),
+    Math.cos(moonLon*rad)
   ) * deg;
 
   const moonDec = Math.asin(
-    Math.sin(latm*rad)*Math.cos(epsilon*rad)
-    + Math.cos(latm*rad)*Math.sin(epsilon*rad)*Math.sin(lon*rad)
+    Math.sin(moonLat*rad)*Math.cos(epsilon*rad)
+    + Math.cos(moonLat*rad)*Math.sin(epsilon*rad)*Math.sin(moonLon*rad)
   ) * deg;
 
   // ================= SIDEREAL =================
@@ -236,11 +270,9 @@ function hitungHilal(lat, lon){
 
   if(azi < 0) azi += 360;
 
-  // ================= KOREKSI =================
   alt = koreksiParallax(alt);
   alt = koreksiRefraction(alt);
 
-  // ================= ELO & AGE =================
   const elo = Math.acos(
     Math.sin(sunDec*rad)*Math.sin(moonDec*rad)
     + Math.cos(sunDec*rad)*Math.cos(moonDec*rad)*Math.cos((sunRA-moonRA)*rad)
@@ -248,7 +280,6 @@ function hitungHilal(lat, lon){
 
   const age = elo / 12.19 * 24;
 
-  // ================= SIMPAN =================
   hilalData.alt = alt;
   hilalData.azi = azi;
 
@@ -256,30 +287,6 @@ function hitungHilal(lat, lon){
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
-
-  // ================= STATUS =================
-  const statusEl = document.getElementById('status');
-  const prediksiEl = document.getElementById('prediksi');
-
-  if(alt < 0){
-    statusEl.innerText = "🌑 Bulan di bawah horizon";
-    prediksiEl.innerText = "Tidak mungkin rukyat";
-  } else {
-    const imkan = (alt>=3 && elo>=6.4 && age>=8);
-    const q = alt - (0.1018*Math.sqrt(elo));
-
-    const vis = q>0.216 ? "Mudah terlihat"
-              : q>-0.014 ? "Terlihat dengan alat"
-              : "Tidak terlihat";
-
-    if(tanggalHijriGlobal >= 29){
-      statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
-      prediksiEl.innerText = vis;
-    } else {
-      statusEl.innerText = "ℹ️ Belum akhir bulan";
-      prediksiEl.innerText = vis;
-    }
-  }
 
   return { alt, azi, elo, age };
 }
