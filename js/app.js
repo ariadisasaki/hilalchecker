@@ -250,30 +250,56 @@ function hitungMaghrib(lat, lon){
   const JD = (now/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
 
-  let L0=(280.46646+36000.76983*T)%360;
-  let M=357.52911+35999.05029*T;
+  // ===== OBLIQUITY (lebih presisi) =====
+  let epsilon = 23.439291
+    - 0.0130042*T
+    - 1.64e-7*T*T
+    + 5.04e-7*T*T*T;
 
-  let C=(1.914602-0.004817*T)*Math.sin(M*rad)
-       +(0.019993-0.000101*T)*Math.sin(2*M*rad);
+  // ===== MATAHARI =====
+  let L0 = (280.46646 + 36000.76983*T)%360;
+  let M = 357.52911 + 35999.05029*T;
 
-  let lambda=L0+C;
-  let delta=Math.asin(Math.sin(23.44*rad)*Math.sin(lambda*rad));
+  let C = (1.914602 - 0.004817*T)*Math.sin(M*rad)
+        + (0.019993 - 0.000101*T)*Math.sin(2*M*rad)
+        + 0.000289*Math.sin(3*M*rad);
 
-  let h0=-0.833*rad;
+  let lambda = L0 + C;
 
-  let cosH=(Math.sin(h0)-Math.sin(lat*rad)*Math.sin(delta))/
-           (Math.cos(lat*rad)*Math.cos(delta));
+  // ===== DECLINATION =====
+  let delta = Math.asin(
+    Math.sin(epsilon*rad)*Math.sin(lambda*rad)
+  );
 
-  if(cosH<-1||cosH>1) return null;
+  // ===== EQUATION OF TIME =====
+  let y = Math.tan((epsilon/2)*rad)**2;
 
-  let H=Math.acos(cosH)*deg;
-  let waktu=12+(H/15);
+  let EoT = 4 * deg * (
+    y*Math.sin(2*L0*rad)
+    - 2*0.0167*Math.sin(M*rad)
+    + 4*0.0167*y*Math.sin(M*rad)*Math.cos(2*L0*rad)
+    - 0.5*y*y*Math.sin(4*L0*rad)
+    - 1.25*0.0167*0.0167*Math.sin(2*M*rad)
+  );
 
-  let timezone=-new Date().getTimezoneOffset()/60;
+  // ===== SUDUT TERBENAM =====
+  let h0 = -0.833 * rad;
 
-  let maghrib=waktu+timezone-(lon/15);
+  let cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(delta)) /
+             (Math.cos(lat*rad)*Math.cos(delta));
 
-  return {decimal:maghrib};
+  if(cosH < -1 || cosH > 1) return null;
+
+  let H = Math.acos(cosH) * deg;
+
+  // ===== SOLAR NOON =====
+  let timezone = -now.getTimezoneOffset()/60;
+  let solarNoon = 12 + timezone - (lon/15) - (EoT/60);
+
+  // ===== MAGHRIB =====
+  let maghrib = solarNoon + (H/15);
+
+  return { decimal: maghrib };
 }
 
 // ================= SENSOR =================
