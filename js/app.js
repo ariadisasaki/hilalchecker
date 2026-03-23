@@ -62,14 +62,24 @@ function koreksiParallax(alt){
 // ================= HIJRI =================
 function getHijri(lat, lon){
   const now = new Date();
-  let maghrib = 18;
   const maghribData = hitungMaghrib(lat, lon);
-  if(maghribData) maghrib = maghribData.decimal;
+  const maghrib = maghribData ? maghribData.decimal : 18;
 
   const jam = now.getHours() + now.getMinutes()/60;
-  const tambahHari = jam >= maghrib ? 1 : 0;
+  let tambahHari = 0;
+
+  // Cek hilal setelah maghrib
+  if(jam >= maghrib){
+    const hilal = hitungHilal(lat, lon);
+    // Kriteria imkan rukyat
+    const bisaRukyat = hilal.alt >= 3 && hilal.elo >= 6.4 && hilal.age >= 8;
+    if(bisaRukyat){
+      tambahHari = 1; // bulan baru
+    }
+  }
 
   let jd = Math.floor((now.getTime()/86400000)+2440587.5) + tambahHari;
+
   let l = jd - 1948440 + 10632;
   let n = Math.floor((l-1)/10631);
   l = l - 10631*n + 354;
