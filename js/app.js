@@ -244,9 +244,11 @@ function hitungMaghrib(lat, lon){
 
 // ================= AUTO RELOAD AT MAGHRIB =================
 function autoReloadAtMaghrib(lat, lon){
-  if(reloadedToday) return;
-
   const now = new Date();
+  const todayKey = `reloaded-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+  
+  if(localStorage.getItem(todayKey)) return; // sudah reload hari ini
+
   const maghribData = hitungMaghrib(lat, lon);
   if(!maghribData) return;
 
@@ -263,7 +265,7 @@ function autoReloadAtMaghrib(lat, lon){
   if(diff < 0) diff = 0;
 
   setTimeout(()=>{
-    reloadedToday = true;
+    localStorage.setItem(todayKey, "true"); // tandai sudah reload
     location.reload();
   }, diff);
 }
