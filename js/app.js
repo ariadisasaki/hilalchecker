@@ -9,8 +9,7 @@ let smoothX = 0;
 let smoothY = 0;
 let audioCtx = null;
 let locked = false;
-let lastBeepTime = 0;
-let reloadedToday = false;
+let beepCooldown = false;
 
 // ================= KONSTANTA =================
 const rad = Math.PI/180;
@@ -29,7 +28,6 @@ window.onload = () => {
       console.log("Audio aktif");
     }
 
-    // Minta izin notifikasi sekali
     if(Notification.permission === "default"){
       Notification.requestPermission().then(p=>{
         if(p==="granted"){
@@ -59,7 +57,6 @@ function koreksiRefraction(alt){
   }
   return alt;
 }
-
 function koreksiParallax(alt){
   const pi = 0.9507;
   const altRad = alt * rad;
@@ -83,7 +80,6 @@ function getHijri(lat, lon){
   }
 
   let jd = Math.floor((now.getTime()/86400000)+2440587.5) + tambahHari;
-
   let l = jd - 1948440 + 10632;
   let n = Math.floor((l-1)/10631);
   l = l - 10631*n + 354;
@@ -99,7 +95,8 @@ function getHijri(lat, lon){
   hijriMonthIndex = m-1;
   tanggalHijriGlobal = d;
 
-  const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
+  const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir",
+                 "Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
   document.getElementById('hijri').innerText = `🕌 ${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
@@ -123,8 +120,11 @@ function getLocation(){
 
     getHijri(lat, lon);
     hitungHilal(lat, lon);
-    autoReloadAtMaghrib(lat, lon);
     startCam();
+    autoReloadAtMaghrib(lat, lon);
+
+    // 🔹 Auto update hilal setiap 10 menit
+    setInterval(()=> hitungHilal(lat, lon), 10*60*1000);
 
   }, ()=>{
     const lat=-8.5833, lon=116.1167;
@@ -133,8 +133,10 @@ function getLocation(){
 
     getHijri(lat, lon);
     hitungHilal(lat, lon);
-    autoReloadAtMaghrib(lat, lon);
     startCam();
+    autoReloadAtMaghrib(lat, lon);
+
+    setInterval(()=> hitungHilal(lat, lon), 10*60*1000);
   },{enableHighAccuracy:true});
 }
 
@@ -225,7 +227,6 @@ function hitungMaghrib(lat, lon){
   const now = new Date();
   const JD = (now/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
-
   const epsilon = 23.439291 - 0.0130042*T - 1.64e-7*T*T + 5.04e-7*T*T*T;
   const L0 = (280.46646 + 36000.76983*T)%360;
   const M = 357.52911 + 35999.05029*T;
@@ -252,13 +253,11 @@ function hitungMaghrib(lat, lon){
   return { decimal: maghrib };
 }
 
-// ================= AUTO RELOAD AT MAGHRIB =================
+// ================= AUTO RELOAD MAGHRIB =================
 function autoReloadAtMaghrib(lat, lon){
   const now = new Date();
   const todayKey = 'hilalReloadDate';
   const lastReload = localStorage.getItem(todayKey);
-
-  // Jika sudah reload hari ini, hentikan
   if(lastReload === now.toDateString()) return;
 
   const maghribData = hitungMaghrib(lat, lon);
@@ -276,10 +275,8 @@ function autoReloadAtMaghrib(lat, lon){
   let diff = maghribTime - now;
   if(diff < 0) diff = 0;
 
-  console.log(`Halaman akan reload dalam ${Math.round(diff/1000)} detik saat maghrib`);
-
   setTimeout(()=>{
-    localStorage.setItem(todayKey, now.toDateString()); // tandai sudah reload hari ini
+    localStorage.setItem(todayKey, now.toDateString());
     location.reload();
   }, diff);
 }
@@ -301,7 +298,7 @@ function initSensor(){
   });
 }
 
-// ================= AR PRESISI =================
+// ================= AR =================
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
@@ -328,8 +325,8 @@ function updateAR(alpha, beta, gamma){
   deltaAz  = Math.max(-45, Math.min(45, deltaAz));
   deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
 
-  let targetX = width/2 + deltaAz * 1.6 + roll*0.5;
-  let targetY = height/2 - deltaAlt * 1.4 - pitch*0.3;
+  let targetX = width/2 + deltaAz * 2 + roll*0.5;
+  let targetY = height/2 - deltaAlt * 2 - pitch*0.3;
 
   targetX = Math.max(30, Math.min(width-30, targetX));
   targetY = Math.max(40, Math.min(height-40, targetY));
@@ -341,22 +338,19 @@ function updateAR(alpha, beta, gamma){
   marker.style.top  = smoothY + "px";
 
   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
-  const nowTime = Date.now();
 
-  if(error < 6){
+  if(error < 5){
     marker.style.color = "lime";
-    if(!locked && nowTime - lastBeepTime > 1000){
+    if(!beepCooldown){
       playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(150);
-      locked = true;
-      lastBeepTime = nowTime;
+      beepCooldown = true;
+      setTimeout(()=> beepCooldown = false, 1000);
     }
   } else if(error < 15){
     marker.style.color = "yellow";
-    locked = false;
   } else {
     marker.style.color = "red";
-    locked = false;
   }
 }
 
