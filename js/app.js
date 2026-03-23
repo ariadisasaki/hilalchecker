@@ -361,8 +361,8 @@ function updateAR(alpha, beta, gamma){
   }
 
   // 🔹 Update overlay AR untuk azimuth & altitude hilal
-  if(azEl) azEl.innerText = `Az: ${hilalData.azi.toFixed(1)}°`;
-  if(altEl) altEl.innerText = `Alt: ${hilalData.alt.toFixed(1)}°`;
+  if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
+  if(altEl) altEl.innerText = `Altitude: ${hilalData.alt.toFixed(2)}°`;
 }
 
 // ================= AUDIO =================
