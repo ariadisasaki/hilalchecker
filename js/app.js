@@ -78,7 +78,7 @@ function getHijri(lat, lon){
   if(maghribData) maghrib = maghribData.decimal;
 
   let jam = now.getHours() + now.getMinutes()/60;
-  let tambahHari = jam >= (maghrib + 10/60) ? 1 : 0;
+  let tambahHari = jam >= maghrib ? 1 : 0;
 
   let jd = Math.floor((now.getTime()/86400000)+2440587.5) + tambahHari;
 
