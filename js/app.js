@@ -28,6 +28,14 @@ window.onload = () => {
   },2000);
 };
 
+// AKTIFKAN AUDIO (WAJIB KLIK USER)
+document.body.addEventListener("click", () => {
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    console.log("Audio aktif");
+  }
+}, { once:true });
+
 // ================= JAM =================
 function startClock(){
   setInterval(()=>{
@@ -322,6 +330,7 @@ function initSensor(){
 
 // ================= AR (ULTRA SMOOTH + CLEAN UI + NO SPAM AUDIO) =================
 function updateAR(alpha, beta, gamma){
+function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
 
@@ -330,79 +339,52 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
-  // INIT posisi awal biar tidak loncat liar
   if(smoothX === 0 && smoothY === 0){
-    smoothX = width / 2;
-    smoothY = height / 2;
+    smoothX = width/2;
+    smoothY = height/2;
   }
 
-  // ================= NORMALISASI =================
-  let deltaAz = hilalData.azi - alpha;
+  // 🔥 FIX UTAMA: heading kompas
+  let heading = 360 - alpha;
+
+  let deltaAz = hilalData.azi - heading;
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
   let deltaAlt = hilalData.alt - gamma;
 
-  // ================= BATAS KETAT =================
+  // limit
   deltaAz = Math.max(-40, Math.min(40, deltaAz));
-  deltaAlt = Math.max(-20, Math.min(20, deltaAlt)); // 🔥 lebih sempit (anti liar bawah)
-
-  // ================= DEAD ZONE =================
-  if(Math.abs(deltaAz) < 0.3) deltaAz = 0;
-  if(Math.abs(deltaAlt) < 0.3) deltaAlt = 0;
+  deltaAlt = Math.max(-25, Math.min(25, deltaAlt));
 
   let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  // ================= POSISI TARGET =================
-  let targetX = width/2 + deltaAz * 1.4;
-  let targetY = height/2 - deltaAlt * 1.5; // 🔥 dikurangi drastis
+  let targetX = width/2 + deltaAz * 1.5;
+  let targetY = height/2 - deltaAlt * 1.3;
 
-  // clamp aman
-  targetX = Math.max(30, Math.min(width - 30, targetX));
-  targetY = Math.max(40, Math.min(height - 40, targetY)); // 🔥 bawah dikunci
+  targetX = Math.max(30, Math.min(width-30, targetX));
+  targetY = Math.max(40, Math.min(height-40, targetY));
 
-  // ================= SMOOTHING BERBEDA X & Y =================
-  let smoothFactorX, smoothFactorY;
-
-  if(error > 20){
-    smoothFactorX = 0.14;
-    smoothFactorY = 0.10; // 🔥 Y lebih lambat
-  } else if(error > 10){
-    smoothFactorX = 0.10;
-    smoothFactorY = 0.08;
-  } else if(error > 5){
-    smoothFactorX = 0.07;
-    smoothFactorY = 0.05;
-  } else if(error > 2){
-    smoothFactorX = 0.04;
-    smoothFactorY = 0.03;
-  } else {
-    smoothFactorX = 0.02;
-    smoothFactorY = 0.02;
-  }
-
-  smoothX += (targetX - smoothX) * smoothFactorX;
-  smoothY += (targetY - smoothY) * smoothFactorY;
+  smoothX += (targetX - smoothX) * 0.08;
+  smoothY += (targetY - smoothY) * 0.06;
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= VISUAL CLEAN =================
-  marker.style.background = "transparent";
-  marker.style.border = "none";
-  marker.style.boxShadow = "none";
-
   // ================= WARNA + AUDIO =================
-  if(error < 3){
+  let now = Date.now();
+
+  if(error < 6){ // 🔥 diperlebar (biar realistis)
     marker.style.color = "lime";
 
-    if(!locked){
+    if(!locked && now - lastBeepTime > 1000){
       playBeep(1200, 200);
-      navigator.vibrate && navigator.vibrate(200);
+      navigator.vibrate && navigator.vibrate(150);
       locked = true;
+      lastBeepTime = now;
     }
 
-  } else if(error < 10){
+  } else if(error < 15){
     marker.style.color = "yellow";
     locked = false;
 
@@ -413,21 +395,20 @@ function updateAR(alpha, beta, gamma){
 }
 
 // ================= AUDIO =================
-function playBeep(freq=800,duration=100){
-  if(!audioCtx){
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  }
-  const osc=audioCtx.createOscillator();
-  const gain=audioCtx.createGain();
+function playBeep(freq=800, duration=100){
+  if(!audioCtx) return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
 
   osc.connect(gain);
   gain.connect(audioCtx.destination);
 
-  osc.frequency.value=freq;
-  gain.gain.setValueAtTime(0.2,audioCtx.currentTime);
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
 
   osc.start();
-  osc.stop(audioCtx.currentTime+duration/1000);
+  osc.stop(audioCtx.currentTime + duration/1000);
 }
 
 // ================= CAMERA =================
