@@ -103,61 +103,52 @@ function getHijri(lat, lon){
 }
 
 // ================= GPS / LOKASI =================
-function getLocation() {
-  // callback sukses
-  const success = async (position) => {
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(async p=>{
+    let lat = p.coords.latitude;
+    let lon = p.coords.longitude;
 
-    // tampilkan koordinat
     document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
-    // tampilkan nama lokasi
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-      const data = await res.json();
-      const a = data.address || {};
-      const lokasi = [
-        a.village || a.town || a.city || "",
-        a.county || "",
-        a.state || "",
-        a.country || ""
-      ].filter(v => v).join(", ");
-      document.getElementById('lokasi').innerText = lokasi || "Lokasi tidak tersedia";
-    } catch (err) {
-      document.getElementById('lokasi').innerText = "Lokasi tidak tersedia";
-      console.error("Error reverse geocoding:", err);
+    try{
+      let r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      let d = await r.json();
+      let a = d.address||{};
+      let lokasi = [
+        a.village||a.town||a.city||"",
+        a.county||"",
+        a.state||"",
+        a.country||""
+      ].filter(v=>v).join(", ");
+      document.getElementById('lokasi').innerText = lokasi;
+    }catch{
+      document.getElementById('lokasi').innerText="Lokasi tidak tersedia";
     }
 
-    // hitung Hijri & Hilal
+    // 🔹 PANGGIL fungsi Hijri & Hilal
     getHijri(lat, lon);
     hitungHilal(lat, lon);
 
-    // start kamera AR
+    // 🔹 PANGGIL auto-update Hijri tanpa reload
+    autoUpdateHijri(lat, lon);
+
     startCam();
 
-    // auto-update Hijri tiap menit tanpa reload
-    autoUpdateHijri(lat, lon);
-  };
+  }, ()=>{
+    // fallback lokasi default
+    let lat=-8.5833, lon=116.1167;
+    document.getElementById('loc').innerText=`${lat}, ${lon}`;
+    document.getElementById('lokasi').innerText="Lokasi default";
 
-  // callback gagal / fallback
-  const error = () => {
-    const lat = -8.5833;
-    const lon = 116.1167;
-
-    document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-    document.getElementById('lokasi').innerText = "Lokasi default";
-
+    // 🔹 PANGGIL fungsi Hijri & Hilal
     getHijri(lat, lon);
     hitungHilal(lat, lon);
-    startCam();
 
-    // tetap aktifkan auto-update Hijri
+    // 🔹 PANGGIL auto-update Hijri tanpa reload
     autoUpdateHijri(lat, lon);
-  };
 
-  // request lokasi
-  navigator.geolocation.getCurrentPosition(success, error, { enableHighAccuracy: true });
+    startCam();
+  },{enableHighAccuracy:true});
 }
 
 // ================= HILAL =================
