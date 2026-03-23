@@ -157,6 +157,19 @@ video{
   z-index:5;
 }
 
+.ar-overlay {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  pointer-events: none;
+}
+
 /* ================= BUTTON ================= */
 button{
   width:100%;
