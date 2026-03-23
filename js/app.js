@@ -254,9 +254,13 @@ function hitungMaghrib(lat, lon){
 
 // ================= AUTO RELOAD AT MAGHRIB =================
 function autoReloadAtMaghrib(lat, lon){
-  if(reloadedToday) return;
-
   const now = new Date();
+  const todayKey = 'hilalReloadDate';
+  const lastReload = localStorage.getItem(todayKey);
+
+  // Jika sudah reload hari ini, hentikan
+  if(lastReload === now.toDateString()) return;
+
   const maghribData = hitungMaghrib(lat, lon);
   if(!maghribData) return;
 
@@ -265,22 +269,17 @@ function autoReloadAtMaghrib(lat, lon){
   const maghribMinute = Math.floor((maghribDecimal - maghribHour)*60);
 
   const maghribTime = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    maghribHour,
-    maghribMinute,
-    0,
-    0
+    now.getFullYear(), now.getMonth(), now.getDate(),
+    maghribHour, maghribMinute, 0, 0
   );
 
   let diff = maghribTime - now;
   if(diff < 0) diff = 0;
 
-  console.log(`Halaman akan reload saat maghrib dalam ${Math.round(diff/1000)} detik`);
+  console.log(`Halaman akan reload dalam ${Math.round(diff/1000)} detik saat maghrib`);
 
   setTimeout(()=>{
-    reloadedToday = true;
+    localStorage.setItem(todayKey, now.toDateString()); // tandai sudah reload hari ini
     location.reload();
   }, diff);
 }
