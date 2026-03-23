@@ -22,12 +22,20 @@ window.onload = () => {
   getLocation();
   initSensor();
 
-  setTimeout(() => showNotif("Hilal Checker", "Aplikasi siap digunakan 🌙"), 2000);
-
+  // Notifikasi & audio aktif otomatis saat klik pertama
   document.body.addEventListener("click", () => {
     if(!audioCtx){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       console.log("Audio aktif");
+    }
+
+    // Minta izin notifikasi sekali
+    if(Notification.permission === "default"){
+      Notification.requestPermission().then(p=>{
+        if(p==="granted"){
+          showNotif("Hilal Checker", "Notifikasi aktif 🌙");
+        }
+      });
     }
   }, { once:true });
 };
@@ -68,7 +76,6 @@ function getHijri(lat, lon){
   const jam = now.getHours() + now.getMinutes()/60;
   let tambahHari = 0;
 
-  // Cek hilal setelah maghrib
   if(jam >= maghrib){
     const hilal = hitungHilal(lat, lon);
     const bisaRukyat = hilal.alt >= 3 && hilal.elo >= 6.4 && hilal.age >= 8;
@@ -184,11 +191,13 @@ function hitungHilal(lat, lon){
 
   hilalData.alt = alt;
   hilalData.azi = azi;
+
   document.getElementById('alt').innerText = alt.toFixed(2);
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
 
+  // Status
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
   if(alt < 0){
@@ -216,6 +225,7 @@ function hitungMaghrib(lat, lon){
   const now = new Date();
   const JD = (now/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
+
   const epsilon = 23.439291 - 0.0130042*T - 1.64e-7*T*T + 5.04e-7*T*T*T;
   const L0 = (280.46646 + 36000.76983*T)%360;
   const M = 357.52911 + 35999.05029*T;
@@ -244,11 +254,9 @@ function hitungMaghrib(lat, lon){
 
 // ================= AUTO RELOAD AT MAGHRIB =================
 function autoReloadAtMaghrib(lat, lon){
-  const now = new Date();
-  const todayKey = `reloaded-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
-  
-  if(localStorage.getItem(todayKey)) return; // sudah reload hari ini
+  if(reloadedToday) return;
 
+  const now = new Date();
   const maghribData = hitungMaghrib(lat, lon);
   if(!maghribData) return;
 
@@ -257,15 +265,22 @@ function autoReloadAtMaghrib(lat, lon){
   const maghribMinute = Math.floor((maghribDecimal - maghribHour)*60);
 
   const maghribTime = new Date(
-    now.getFullYear(), now.getMonth(), now.getDate(),
-    maghribHour, maghribMinute, 0, 0
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    maghribHour,
+    maghribMinute,
+    0,
+    0
   );
 
   let diff = maghribTime - now;
   if(diff < 0) diff = 0;
 
+  console.log(`Halaman akan reload saat maghrib dalam ${Math.round(diff/1000)} detik`);
+
   setTimeout(()=>{
-    localStorage.setItem(todayKey, "true"); // tandai sudah reload
+    reloadedToday = true;
     location.reload();
   }, diff);
 }
