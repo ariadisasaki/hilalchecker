@@ -268,35 +268,27 @@ function updateAR(alpha, beta, gamma){
     smoothY = height/2;
   }
 
-  // 🔹 FIX MARKER SESUAI LANGIT
-  const heading = 360 - alpha; // arah kompas dari sensor
-  let deltaAz = heading - hilalData.azi; // ⬅ ini dibalik dari sebelumnya
+  const heading = 360 - alpha;
+  let deltaAz = hilalData.azi - heading;
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
-
   let deltaAlt = hilalData.alt - gamma;
 
-  // batas realistis
   deltaAz = Math.max(-45, Math.min(45, deltaAz));
   deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
-
   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  // posisi target
-  let targetX = width/2 + deltaAz * 1.6;  // multiplier bisa diatur
+  let targetX = width/2 + deltaAz * 1.6;
   let targetY = height/2 - deltaAlt * 1.4;
-
   targetX = Math.max(30, Math.min(width-30, targetX));
   targetY = Math.max(40, Math.min(height-40, targetY));
 
-  // smoothing halus
   smoothX += (targetX - smoothX) * 0.08;
   smoothY += (targetY - smoothY) * 0.06;
 
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= WARNA + AUDIO =================
   const nowTime = Date.now();
   if(error < 6){
     marker.style.color = "lime";
@@ -308,10 +300,10 @@ function updateAR(alpha, beta, gamma){
     }
   } else if(error < 15){
     marker.style.color = "yellow";
-    locked = false;
+    locked=false;
   } else {
     marker.style.color = "red";
-    locked = false;
+    locked=false;
   }
 }
 
