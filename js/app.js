@@ -213,11 +213,15 @@ function hitungHilalFuture(lat, lon, time){
 }
 
 // ================= HITUNG HILAL CORE =================
+// ================= HITUNG HILAL CORE =================
 function hitungHilalCore(lat, lon, customTime=null){
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
+
   const now = customTime ? new Date(customTime) : new Date();
 
   // ================= TIME =================
-  const JD_UTC = (now/86400000)+2440587.5;
+  const JD_UTC = (now.getTime()/86400000)+2440587.5;
   const deltaT = getDeltaT()/86400;
   const JD = JD_UTC + deltaT;
   const T = (JD - 2451545)/36525;
@@ -227,9 +231,9 @@ function hitungHilalCore(lat, lon, customTime=null){
   let epsilon0 = 23 + 26/60 + 21.448/3600
     - (46.8150*T + 0.00059*T*T - 0.001813*T*T*T)/3600;
 
-  const L = (280.4665 + 36000.7698*T)%360;
-  const Lm = (218.3165 + 481267.8813*T)%360;
-  const omega = (125.04452 - 1934.136261*T)%360;
+  const L = (280.4665 + 36000.7698*T) % 360;
+  const Lm = (218.3165 + 481267.8813*T) % 360;
+  const omega = (125.04452 - 1934.136261*T) % 360;
 
   const deltaPsi = (-17.20*Math.sin(omega*rad) - 1.32*Math.sin(2*L*rad)
                    -0.23*Math.sin(2*Lm*rad) + 0.21*Math.sin(2*omega*rad))/3600;
@@ -240,7 +244,7 @@ function hitungHilalCore(lat, lon, customTime=null){
   const epsilon = epsilon0 + deltaEps;
 
   // ================= MATAHARI =================
-  const M = (357.52911 + 35999.05029*T)%360;
+  const M = (357.52911 + 35999.05029*T) % 360;
   const C = (1.914602 - 0.004817*T - 0.000014*T*T)*Math.sin(M*rad)
           + (0.019993 - 0.000101*T)*Math.sin(2*M*rad)
           + 0.000289*Math.sin(3*M*rad);
@@ -249,11 +253,11 @@ function hitungHilalCore(lat, lon, customTime=null){
   const sunRA = Math.atan2(Math.cos(epsilon*rad)*Math.sin(sunLong*rad), Math.cos(sunLong*rad))*deg;
   const sunDec = Math.asin(Math.sin(epsilon*rad)*Math.sin(sunLong*rad))*deg;
 
-  // ================= BULAN (Meeus Improved) =================
-  const D = (297.8501921 + 445267.1114034*T)%360;
-  const Mm = (134.9633964 + 477198.8675055*T)%360;
+  // ================= BULAN =================
+  const D = (297.8501921 + 445267.1114034*T) % 360;
+  const Mm = (134.9633964 + 477198.8675055*T) % 360;
   const Ms = M;
-  const F  = (93.2720950 + 483202.0175233*T)%360;
+  const F  = (93.2720950 + 483202.0175233*T) % 360;
 
   let lonMoon =
     Lm
@@ -287,7 +291,7 @@ function hitungHilalCore(lat, lon, customTime=null){
   )*deg;
 
   // ================= SIDEREAL =================
-  const GMST = (280.46061837 + 360.98564736629*(JD-2451545))%360;
+  const GMST = (280.46061837 + 360.98564736629*(JD-2451545)) % 360;
   const LST = GMST + lon;
   const HA = (LST - moonRA);
 
@@ -314,16 +318,12 @@ function hitungHilalCore(lat, lon, customTime=null){
     + Math.cos(sunDec*rad)*Math.cos(moonDec*rad)*Math.cos((sunRA - moonRA)*rad)
   )*deg;
 
-  const age = elo/12.19*24;
+  const age = elo/12.19*24; // usia bulan dalam jam
 
   // ================= ILUMINASI =================
   const illumination = (1 - Math.cos(elo * rad)) / 2 * 100;
-  document.getElementById('illum').innerText = illumination.toFixed(2) + " %";
 
-  // ================= OUTPUT =================
-  hilalData.alt = alt;
-  hilalData.azi = azi;
-
+  // ================= OUTPUT BERSIH =================
   return { alt, azi, elo, age, illumination };
 }
 
