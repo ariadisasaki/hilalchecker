@@ -54,6 +54,7 @@
         <div class="data-box">Azimuth<br><span id="azi">0.00</span>°</div>
         <div class="data-box">Elongasi<br><span id="elo">0.00</span>°</div>
         <div class="data-box">Umur<br><span id="age">0.0</span> jam</div>
+        <div class="data-box">Illuminasi<br><span id="illum">0.00</span> %</div>
       </div>
     </div>
 
@@ -78,6 +79,7 @@
         <div id="arStatus" class="ar-status">Mencari...</div>
       </div>
       <button id="startARBtn">▶️ Mulai Kamera & Audio</button>
+      <button onclick="calibrateCompass()">🧭 Kalibrasi Kompas</button>
     </div>
 
     <!-- FOOTER -->
@@ -92,9 +94,7 @@
 
   <!-- SCRIPT UTAMA -->
   <script src="js/app.js"></script>
-
   <script>
-    // AR Button fallback (jika user belum klik layar)
     document.getElementById("startARBtn").addEventListener("click", ()=>{
       if(!audioCtx){
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -103,21 +103,16 @@
       document.getElementById("arStatus").innerText = "Kamera & Audio siap digunakan";
     });
 
-    // SPLASH AUTO HIDE
     window.addEventListener("load", ()=>{
       setTimeout(()=>{
         document.getElementById("splash").style.opacity="0";
-        setTimeout(()=>{
-          document.getElementById("splash").style.display="none";
-        },500);
+        setTimeout(()=> document.getElementById("splash").style.display="none",500);
       },2000);
     });
 
-    // REGISTER SERVICE WORKER (PWA)
     if("serviceWorker" in navigator){
       navigator.serviceWorker.register("sw.js");
     }
   </script>
-
 </body>
 </html>
