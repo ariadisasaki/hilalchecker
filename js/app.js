@@ -12,6 +12,8 @@ let locked = false;
 let beepCooldown = false;
 let headingOffset = 0;
 let calibrating = false;
+let currentLat = 0;
+let currentLon = 0;
 
 // ================= KONSTANTA =================
 const rad = Math.PI/180;
@@ -107,6 +109,8 @@ function getLocation(){
   navigator.geolocation.getCurrentPosition(async p=>{
     const lat = p.coords.latitude;
     const lon = p.coords.longitude;
+    currentLat = lat;
+    currentLon = lon;
 
     document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
@@ -309,13 +313,7 @@ function generateHilalPath(lat, lon){
 
 // ================= JALUR HILAL MENDATANG =================
 function hitungHilalFuture(lat, lon, time){
-  const nowBackup = Date.now;
-  Date.now = () => time.getTime();
-
-  const result = hitungHilal(lat, lon);
-
-  Date.now = nowBackup;
-  return result;
+  return hitungHilal(lat, lon);
 }
 
 // ================= MAGHRIB =================
