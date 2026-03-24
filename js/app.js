@@ -513,7 +513,7 @@ function calibrateCompass(){
       calibrating = false;
       window.removeEventListener("deviceorientation", handler);
 
-      alert("Kalibrasi selesai ✅");
+      alert("Gerakkan perangkat anda dengan membentuk pola angka 8 di udara ✅");
     }
   };
 
