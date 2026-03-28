@@ -1,3 +1,4 @@
+/* ===================== RESET & BODY ===================== */
 body{
   margin:0;
   font-family:'Poppins',sans-serif;
@@ -6,7 +7,7 @@ body{
   color:#fff;
 }
 
-/* HEADER */
+/* ===================== HEADER ===================== */
 .header{
   text-align:center;
   padding:10px 0;
@@ -15,7 +16,7 @@ body{
   padding:10px;
 }
 
-/* CARD */
+/* ===================== CARD ===================== */
 .card{
   background: rgba(255,255,255,0.08);
   border-radius:20px;
@@ -26,13 +27,12 @@ body{
   position:relative;
   animation: fadeIn 0.5s ease;
 }
-
 @keyframes fadeIn{
   from{opacity:0; transform:translateY(10px);}
   to{opacity:1; transform:translateY(0);}
 }
 
-/* DATA GRID */
+/* ===================== DATA GRID ===================== */
 .data-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -54,7 +54,7 @@ body{
   font-weight:600;
 }
 
-/* STATUS */
+/* ===================== STATUS ===================== */
 .status{
   text-align:center;
   font-size:16px;
@@ -66,37 +66,44 @@ body{
 .status.ok{ background:#1f8f4e; }
 .status.no{ background:#8f1f1f; }
 
-/* VIDEO / CAMERA */
-video{
-  width:100%;
-  height:220px;
-  object-fit:cover;
-  border-radius:15px;
-  display:block;
-  z-index:1;
-}
+/* ===================== CAMERA WRAPPER (SQUARE) ===================== */
 .camera-wrapper{
   position: relative;
   overflow: hidden;
   border-radius:15px;
+  width:100%;
+  max-width:400px;      /* optional untuk ukuran square */
+  aspect-ratio: 1/1;    /* PAKSA persegi */
+  margin:20px auto;     /* tengah horizontal */
+  background:#000;
 }
 
-/* MARKER */
+/* VIDEO / CAMERA */
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;      /* isi penuh persegi */
+  border-radius:15px;
+  display:block;
+  z-index:1;
+}
+
+/* ===================== MARKER AR ===================== */
 #marker{
   position:absolute;
   font-size:30px;
   z-index:4;
   pointer-events:none;
-  transform: translate(0,0);
-  left:0;
-  top:0;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%); /* titik pusat marker = koordinat JS */
   background: transparent !important;
   border: none !important;
   filter: drop-shadow(0 0 6px currentColor);
   transition: color 0.2s ease, transform 0.1s ease;
 }
 
-/* CROSSHAIR */
+/* ===================== CROSSHAIR ===================== */
 .crosshair{
   position:absolute;
   top:50%;
@@ -110,7 +117,7 @@ video{
   pointer-events:none;
 }
 
-/* GRID RADAR */
+/* ===================== GRID RADAR ===================== */
 .grid{
   position:absolute;
   width:100%;
@@ -124,7 +131,7 @@ video{
   z-index:2;
 }
 
-/* AR STATUS */
+/* ===================== AR STATUS ===================== */
 .ar-status{
   position:absolute;
   bottom:10px;
@@ -136,7 +143,7 @@ video{
   font-size:13px;
   z-index:5;
 }
-.ar-overlay {
+.ar-overlay{
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -149,6 +156,7 @@ video{
   pointer-events: none;
 }
 
+/* ===================== BUTTON ===================== */
 #calibrateBtn{
   width:100%;
   padding:12px;
@@ -161,11 +169,8 @@ video{
   box-shadow:0 5px 15px rgba(0,0,0,0.3);
   transition:0.2s;
 }
-#calibrateBtn:active{
-  transform:scale(0.97);
-}
+#calibrateBtn:active{ transform:scale(0.97); }
 
-/* BUTTON */
 button{
   width:100%;
   padding:12px;
@@ -181,7 +186,7 @@ button{
 button:active{ transform:scale(0.97); }
 button:hover{ filter:brightness(1.1); }
 
-/* SPLASH */
+/* ===================== SPLASH ===================== */
 #splash{
   position:fixed;
   top:0;
@@ -218,7 +223,7 @@ button:hover{ filter:brightness(1.1); }
 }
 @keyframes spin{ to{transform:rotate(360deg);} }
 
-/* FOOTER */
+/* ===================== FOOTER ===================== */
 .footer{
   text-align:center;
   font-size:14px;
@@ -231,17 +236,7 @@ button:hover{ filter:brightness(1.1); }
   font-weight:600;
 }
 
-/* FALLBACK LOGO */
-.logo-fallback{
-  font-size:40px;
-  display:none;
-}
-.logo:invalid + .logo-fallback,
-.logo[style*="display: none"] + .logo-fallback{
-  display:block;
-}
-
-/* HILAL PATH DOTS */
+/* ===================== HILAL PATH DOTS ===================== */
 .hilal-path-dot{
   position:absolute;
   width:6px;
