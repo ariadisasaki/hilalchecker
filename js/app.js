@@ -638,12 +638,14 @@ function hitungHilalCore(lat, lon, customTime=null){
 
 // ================= HITUNG MATAHARI =================
 function hitungMatahari(lat, lon){
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
   const now = new Date();
 
   const JD = (now/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
 
-  const L0 = (280.46646 + 36000.76983*T)%360;
+  const JD = (now.getTime()/86400000)+2440587.5;
   const M = 357.52911 + 35999.05029*T;
 
   const C = (1.914602 - 0.004817*T)*Math.sin(M*rad)
