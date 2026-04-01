@@ -201,9 +201,9 @@ function getHijriInsight(age, maghrib, now){
 
   let statusWaktu = "";
   if(jam < maghrib){
-    statusWaktu = "Sebelum maghrib";
+    statusWaktu = "Sebelum Maghrib";
   } else {
-    statusWaktu = "Setelah maghrib";
+    statusWaktu = "Setelah Maghrib";
   }
 
   return `
