@@ -16,6 +16,13 @@ let currentLat = 0;
 let currentLon = 0;
 let lastPathUpdate = 0;
 let declinationGlobal = 0;
+let hilalDataFull = {
+  alt: 0,
+  azi: 0,
+  elo: 0,
+  age: 0,
+  illumination: 0
+};
 
 // ================= INIT =================
 window.onload = () => {
@@ -128,7 +135,7 @@ function getLocation(){
             const age = parseFloat(ageEl.innerText) || 0;
 
             // 🔹 Update insight
-            const insight = getHijriInsight(age, maghrib, now);
+            const insight = getHijriInsight(hilalDataFull, maghrib, now);
             insightEl.innerHTML = insight;
 
             // 🔹 Update countdown
@@ -235,34 +242,47 @@ const rad = Math.PI/180;
 const deg = 180/Math.PI;
 
 // ===== HIJRI INSIGHT =====
-function getHijriInsight(age, maghrib, now){
-  const umurHari = age / 24;
+function getHijriInsight(data, maghrib, now){
+  const { alt, azi, elo, age, illumination } = data;
 
   const jam = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
-  
-  let statusWaktu = "";
-  if(jam < maghrib){
-    statusWaktu = "Sebelum Maghrib";
-  } else {
-    statusWaktu = "Setelah Maghrib";
-  }
+
+  const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
 
   return `
-Umur bulan: ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
+🔭 <b>Tinggi Bulan:</b> ${alt.toFixed(2)}°<br>
+Menunjukkan posisi bulan dari horizon. 
+${alt > 0 ? "Bulan sudah di atas ufuk dan berpotensi terlihat." : "Bulan masih di bawah ufuk sehingga tidak mungkin terlihat."}
+<br><br>
 
-Status waktu: ${jam >= maghrib ? "Setelah Maghrib" : "Sebelum Maghrib"}<br><br>
+🧭 <b>Azimuth:</b> ${azi.toFixed(2)}°<br>
+Menunjukkan arah bulan dari utara (0° = Utara, 90° = Timur, 270° = Barat).
+<br><br>
 
-Penjelasan:<br>
-Tanggal Hijriah tidak dihitung dari umur bulan ÷ 24.<br><br>
+📐 <b>Elongasi:</b> ${elo.toFixed(2)}°<br>
+Jarak sudut bulan terhadap matahari. 
+Semakin besar elongasi, semakin besar peluang hilal terlihat.
+<br><br>
 
-Saat ini umur bulan mendekati ${(age/24).toFixed(0)} hari,
-namun tanggal masih ${tanggalHijriGlobal} karena:<br>
-- Awal bulan tidak dimulai saat umur = 0<br>
-- Pergantian hari terjadi saat maghrib<br>
-- Ada offset rukyat di awal bulan<br><br>
+💡 <b>Cahaya Bulan:</b> ${illumination.toFixed(2)}%<br>
+Menunjukkan fase bulan (semakin besar → semakin terang).
+<br><br>
 
-Perkiraan:<br>
-Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi akan mendekati hari berikutnya.
+⏳ <b>Status Waktu:</b> ${statusWaktu}<br>
+Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
+<br><br>
+
+🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
+
+<b>Penjelasan:</b><br>
+Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
+tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
+- Awal bulan ditentukan oleh rukyat/hisab<br>
+- Pergantian hari terjadi saat Maghrib<br>
+- Tidak selalu sinkron dengan umur bulan astronomi<br><br>
+
+<b>Perkiraan:</b><br>
+Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya.
 `;
 }
 
@@ -448,7 +468,8 @@ function hitungHilal(lat, lon, customTime=null){
   const maghribData = hitungMaghrib(currentLat, currentLon);
   const maghrib = maghribData ? maghribData.decimal : 18;
   
-  const insight = getHijriInsight(age, maghrib, now);
+  const insight = getHijriInsight({ alt, azi, elo, age, illumination }, maghrib, now);
+  hilalDataFull = { alt, azi, elo, age, illumination };
   
   document.getElementById('insight').innerHTML = insight;
 
