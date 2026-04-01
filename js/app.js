@@ -69,8 +69,10 @@ function getLocation(){
         currentLat = lat;
         currentLon = lon;
 
-        document.getElementById('loc').innerText =
-            `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        const locEl = document.getElementById('loc');
+        const lokasiEl = document.getElementById('lokasi');
+
+        locEl.innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
         try{
             const r = await fetch(
@@ -85,10 +87,10 @@ function getLocation(){
                 a.country || ""
             ].filter(v=>v).join(", ");
 
-            document.getElementById('lokasi').innerText = lokasi;
+            lokasiEl.innerText = lokasi;
 
         }catch{
-            document.getElementById('lokasi').innerText = "Lokasi tidak tersedia";
+            lokasiEl.innerText = "Lokasi tidak tersedia";
         }
 
         // 🔹 Declination
@@ -100,7 +102,9 @@ function getLocation(){
         startCam();
         autoReloadAtMaghrib(lat, lon);
 
-        // 🔁 Update hilal tiap 10 detik
+        // ================= INTERVAL =================
+
+        // 🔁 Update hilal tiap 10 detik (berat)
         setInterval(()=>{
             hitungHilal(currentLat, currentLon);
         }, 10 * 1000);
@@ -110,22 +114,42 @@ function getLocation(){
             updateHijriRealTime(currentLat, currentLon);
         }, 60 * 1000);
 
+        // 🔥 REALTIME UI (RINGAN - 1 DETIK)
+        setInterval(()=>{
+            const now = new Date();
+
+            const maghribData = hitungMaghrib(currentLat, currentLon);
+            const maghrib = maghribData ? maghribData.decimal : 18;
+
+            const ageEl = document.getElementById('age');
+            const insightEl = document.getElementById('insight');
+            const countdownEl = document.getElementById('countdownMaghrib');
+
+            const age = parseFloat(ageEl.innerText) || 0;
+
+            // 🔹 Update insight
+            const insight = getHijriInsight(age, maghrib, now);
+            insightEl.innerHTML = insight;
+
+            // 🔹 Update countdown
+            const countdown = getCountdownMaghrib(now, maghrib);
+            countdownEl.innerText = countdown;
+
+        }, 1000);
+
     }, ()=>{
         // ================= FALLBACK =================
         const lat = -8.5833;
         const lon = 116.1167;
 
-        // ✅ WAJIB: set global
         currentLat = lat;
         currentLon = lon;
 
         document.getElementById('loc').innerText = `${lat}, ${lon}`;
         document.getElementById('lokasi').innerText = "Lokasi default";
 
-        // 🔹 fallback declination
         declinationGlobal = 0;
 
-        // 🔹 Init utama
         updateHijriRealTime(lat, lon);
         hitungHilal(lat, lon);
         startCam();
@@ -140,6 +164,23 @@ function getLocation(){
         setInterval(()=>{
             updateHijriRealTime(currentLat, currentLon);
         }, 60 * 1000);
+
+        // 🔥 REALTIME UI (WAJIB JUGA DI FALLBACK)
+        setInterval(()=>{
+            const now = new Date();
+
+            const maghribData = hitungMaghrib(currentLat, currentLon);
+            const maghrib = maghribData ? maghribData.decimal : 18;
+
+            const age = parseFloat(document.getElementById('age').innerText) || 0;
+
+            const insight = getHijriInsight(age, maghrib, now);
+            document.getElementById('insight').innerHTML = insight;
+
+            const countdown = getCountdownMaghrib(now, maghrib);
+            document.getElementById('countdownMaghrib').innerText = countdown;
+
+        }, 1000);
 
     }, {
         enableHighAccuracy: true,
@@ -197,8 +238,8 @@ const deg = 180/Math.PI;
 function getHijriInsight(age, maghrib, now){
   const umurHari = age / 24;
 
-  const jam = now.getHours() + now.getMinutes()/60;
-
+  const jam = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+  
   let statusWaktu = "";
   if(jam < maghrib){
     statusWaktu = "Sebelum Maghrib";
