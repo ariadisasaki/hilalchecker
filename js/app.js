@@ -193,6 +193,38 @@ async function getMagneticDeclination(lat, lon){
 const rad = Math.PI/180;
 const deg = 180/Math.PI;
 
+// ===== HIJRI INSIGHT =====
+function getHijriInsight(age, maghrib, now){
+  const umurHari = age / 24;
+
+  const jam = now.getHours() + now.getMinutes()/60;
+
+  let statusWaktu = "";
+  if(jam < maghrib){
+    statusWaktu = "Sebelum maghrib";
+  } else {
+    statusWaktu = "Setelah maghrib";
+  }
+
+  return `
+Umur bulan: ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
+
+Status waktu: ${jam >= maghrib ? "Setelah Maghrib" : "Sebelum Maghrib"}<br><br>
+
+Penjelasan:<br>
+Tanggal Hijriah tidak dihitung dari umur bulan ÷ 24.<br><br>
+
+Saat ini umur bulan mendekati ${(age/24).toFixed(0)} hari,
+namun tanggal masih ${tanggalHijriGlobal} karena:<br>
+- Awal bulan tidak dimulai saat umur = 0<br>
+- Pergantian hari terjadi saat maghrib<br>
+- Ada offset rukyat di awal bulan<br><br>
+
+Perkiraan:<br>
+Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi akan mendekati hari berikutnya.
+`;
+}
+
 // ============== HIJRI REALTIME =============
 function updateHijriRealTime(lat, lon){
     const now = new Date();
@@ -329,6 +361,30 @@ function getDeltaT(){
   return 64.7 + 64.5*t + 0.21*t*t; // aproksimasi Meeus modern
 }
 
+// === HIJRI PROGRESS ===
+function getNextHijriProgress(age){
+  const jamDalamHari = age % 24; // sisa jam dalam 1 hari hijriah
+  return (jamDalamHari / 24) * 100;
+}
+
+// === HITUNG MUNDUR NAGHRIB ===
+function getCountdownMaghrib(now, maghrib){
+  const jamSekarang = now.getHours() + now.getMinutes()/60;
+
+  let sisaJam;
+
+  if(jamSekarang < maghrib){
+    sisaJam = maghrib - jamSekarang;
+  } else {
+    sisaJam = (24 - jamSekarang) + maghrib;
+  }
+
+  const jam = Math.floor(sisaJam);
+  const menit = Math.floor((sisaJam - jam) * 60);
+
+  return `${jam} jam ${menit} menit lagi menuju Maghrib`;
+}
+
 // ================= HILAL =================
 function hitungHilal(lat, lon, customTime=null){
   const statusEl = document.getElementById('status');
@@ -341,6 +397,24 @@ function hitungHilal(lat, lon, customTime=null){
   const data = hitungHilalCore(lat, lon, customTime);
 
   const { alt, azi, elo, age, illumination } = data;
+  
+  // === PROGRESS BAR ===
+  const progress = getNextHijriProgress(age);
+  document.getElementById('progressBar').style.width = progress + "%";
+
+  // === INSIGHT ====
+  const now = new Date();
+  const maghribData = hitungMaghrib(currentLat, currentLon);
+  const maghrib = maghribData ? maghribData.decimal : 18;
+  
+  const insight = getHijriInsight(age, maghrib, now);
+  
+  document.getElementById('insight').innerHTML = insight;
+
+  // === HITUNG MUNDUR MAGHRIB ====
+  const countdown = getCountdownMaghrib(now, maghrib);
+  document.getElementById('countdownMaghrib').innerText = countdown;
+
   hilalData.alt = alt;
   hilalData.azi = azi;
 
