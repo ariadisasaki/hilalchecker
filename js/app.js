@@ -7,6 +7,10 @@ let tanggalHijriGlobal = 0;
 let hilalData = { alt: 0, azi: 0 };
 let smoothX = 0;
 let smoothY = 0;
+let smoothHeading = 0;
+let smoothPitch = 0;
+let smoothRoll = 0;
+let kalmanFactor = 0.12;
 let audioCtx = null;
 let locked = false;
 let beepCooldown = false;
@@ -201,27 +205,56 @@ function getLocation(){
     });
 }
 
-// ================= SENSOR =================
+// ================= SENSOR (UPGRADE PRO) =================
 function initSensor(){
-  let lastAlpha=0, lastBeta=0, lastGamma=0;
 
-  window.addEventListener("deviceorientationabsolute", e=>{
-    let alpha = e.alpha || 0;
-    let beta  = e.beta  || 0;
-    let gamma = e.gamma || 0;
+  let lastAlpha = 0;
+  let lastBeta  = 0;
+  let lastGamma = 0;
 
-    // 🔹 FILTER biar halus
-    alpha = lastAlpha + (alpha - lastAlpha) * 0.05;
-    beta  = lastBeta  + (beta  - lastBeta)  * 0.05;
-    gamma = lastGamma + (gamma - lastGamma) * 0.05;
+  let initialized = false;
 
-    lastAlpha = alpha;
-      window.lastAlpha = alpha;
-    lastBeta  = beta;
-    lastGamma = gamma;
+  function handleOrientation(e){
 
-    updateAR(alpha, beta, gamma);
-  });
+    let alpha = e.alpha ?? 0;
+    let beta  = e.beta  ?? 0;
+    let gamma = e.gamma ?? 0;
+
+    // ================= NORMALISASI HEADING =================
+    alpha = (alpha + 360) % 360;
+
+    // ================= FIRST INIT (BIAR GA LONCAT) =================
+    if(!initialized){
+      lastAlpha = alpha;
+      lastBeta  = beta;
+      lastGamma = gamma;
+      initialized = true;
+    }
+
+    // ================= FILTER HEADING (ANTI LONCAT 360) =================
+    let deltaAlpha = ((alpha - lastAlpha + 540) % 360) - 180;
+
+    let factorA = Math.abs(deltaAlpha) > 5 ? 0.2 : 0.08;
+    let factorB = Math.abs(beta - lastBeta) > 5 ? 0.15 : 0.07;
+    let factorG = Math.abs(gamma - lastGamma) > 5 ? 0.15 : 0.07;
+
+    lastAlpha += deltaAlpha * factorA;
+    lastBeta  += (beta  - lastBeta)  * factorB;
+    lastGamma += (gamma - lastGamma) * factorG;
+
+    // ================= SIMPAN GLOBAL =================
+    window.lastAlpha = lastAlpha;
+
+    // ================= KIRIM KE AR =================
+    updateAR(lastAlpha, lastBeta, lastGamma);
+  }
+
+  // ================= EVENT UTAMA =================
+  if("ondeviceorientationabsolute" in window){
+    window.addEventListener("deviceorientationabsolute", handleOrientation);
+  } else {
+    window.addEventListener("deviceorientation", handleOrientation);
+  }
 }
 
 // ============== DEKLINASI ==============
@@ -822,24 +855,26 @@ function updateAR(alpha, beta, gamma){
         smoothY = height/2;
     }
 
-    // ================= HEADING (FIX) =================
-    let heading;
-    if(alpha !== null){
-        heading = alpha;
-    } else {
-        heading = 360 - alpha;
-    }
-
-    heading = (heading + headingOffset + declinationGlobal) % 360;
-
-    const pitch = beta || 0;
-    const roll  = gamma || 0;
+    // ================= HEADING SMOOTH =================
+    let rawHeading = alpha ?? 0;
+    
+    // anti loncat 360°
+    smoothHeading += ((rawHeading - smoothHeading + 540) % 360 - 180) * kalmanFactor;
+  
+    let heading = (smoothHeading + headingOffset + declinationGlobal) % 360;
+  
+    // ================= PITCH & ROLL SMOOTH =================
+    smoothPitch += ((beta || 0) - smoothPitch) * 0.1;
+    smoothRoll  += ((gamma || 0) - smoothRoll) * 0.1;
+    
+    const pitch = smoothPitch;
+    const roll  = smoothRoll;
 
     // ================= AZIMUTH (FIX BESAR) =================
     let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
 
     // ================= ALTITUDE (FIX) =================
-    let deviceAlt = pitch * Math.cos(roll * Math.PI/180);
+    let deviceAlt = pitch;
     let deltaAlt = hilalData.alt - deviceAlt;
 
     // 🔹 koreksi horizon kamera
@@ -866,23 +901,31 @@ function updateAR(alpha, beta, gamma){
     marker.style.top  = smoothY + "px";
 
     // ================= ERROR & FEEDBACK =================
-    const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
+   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-    if(error < 5){
-        marker.style.color = "lime";
-        if(!beepCooldown){
-            playBeep(1200, 200);
-            navigator.vibrate && navigator.vibrate(150);
-            beepCooldown = true;
-            setTimeout(()=> beepCooldown = false, 1000);
-        }
-    } else if(error < 15){
-        marker.style.color = "yellow";
-    } else {
-        marker.style.color = "red";
-    }
+   // ================= VISIBILITY SCORE (TAMBAHKAN DI SINI) =================
+   let visibilityScore = 100 - error * 2;
+   visibilityScore = Math.max(0, Math.min(100, visibilityScore));
 
-    // ================= INFO UI =================
+   // efek visual (biar makin realistis)
+   marker.style.opacity = 0.5 + (visibilityScore / 200);
+
+   // ================= WARNA MARKER =================
+   if(error < 5){
+     marker.style.color = "lime";
+     if(!beepCooldown){
+         playBeep(1200, 200);
+         navigator.vibrate && navigator.vibrate(150);
+         beepCooldown = true;
+         setTimeout(()=> beepCooldown = false, 1000);
+     }
+   } else if(error < 15){
+     marker.style.color = "yellow";
+   } else {
+     marker.style.color = "red";
+   }
+    
+   // ================= INFO UI =================
     if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
     if(altEl) altEl.innerText = `Tinggi: ${hilalData.alt.toFixed(2)}°`;
 
@@ -896,7 +939,7 @@ function updateAR(alpha, beta, gamma){
             dot.className = "hilal-path-dot";
 
             let dx = ((p.azi - heading + 540) % 360) - 180;
-            let dy = p.alt - deviceAlt;
+            let dy = p.alt - pitch;
 
             const fov = 60;
 
