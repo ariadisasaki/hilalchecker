@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hilal Checker</title>
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#0b1a3a">
+</head>
+
+<body>
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <div class="splash-content">
+      <img src="assets/icon-512.png" class="logo" onerror="this.style.display='none'">
+      <div class="logo-fallback">🌙</div>
+      <h3>Hilal Checker</h3>
+      <div class="loader"></div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🌕 Hilal Checker</h1>
+    <p>Metode Hisab Astronomi Modern</p>
+  </div>
+
+  <!-- CONTAINER -->
+  <div class="container">
+
+    <!-- WAKTU -->
+    <div class="card">
+      <h3>⏰ Tanggal dan Waktu :</h3>
+      <p id="waktu">Memuat...</p>
+      <p id="hijri">Memuat...</p>
+    </div>
+
+    <!-- LOKASI -->
+    <div class="card">
+      <h3>📍 Lokasi :</h3>
+      <p id="loc">Memuat...</p>
+      <p id="lokasi">Memuat...</p>
+    </div>
+
+    <!-- DATA HILAL -->
+    <div class="card">
+      <h3>🌙 Data Hilal :</h3>
+      <div class="data-grid">
+        <div class="data-box">Tinggi Bulan<br><span id="alt">0.00</span>°</div>
+        <div class="data-box">Azimuth Bulan<br><span id="azi">0.00</span>°</div>
+        <div class="data-box">Elongasi Bulan<br><span id="elo">0.00</span>°</div>
+        <div class="data-box">Umur Bulan<br><span id="age">0.0</span> jam</div>
+        <div class="data-box full-width">Cahaya Bulan<br><span id="illum">0.00%</span></div>
+      </div>
+    </div>
+
+    <!-- STATUS HILAL -->
+    <div class="card">
+      <h3>📝 Status Hilal :</h3>
+      <div id="status" class="status">Memuat...</div>
+      <div id="prediksi" class="status">Memuat...</div>
+    </div>
+
+    <!-- ANALISIS -->
+    <div class="card">
+      <h3>📊 Analisis Hilal :</h3>
+      <div id="insight" class="insight-text"></div>
+    </div>
+     <!-- KETERANGAN -->
+    <div class="insight-note">
+    🔶 Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal
+    </div>
+
+    <div class="progress-container">
+      <!-- COUNTDOWN DI ATAS -->
+      <div id="countdownMaghrib" class="countdown-text"></div>
+      
+      <!-- PROGRESS BAR -->
+      <div class="progress-bar-bg">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+    </div>
+
+    <!-- POSISI HILAL (AR) -->
+    <div class="card">
+      <div class="camera-wrapper">
+        <video id="cam" autoplay playsinline></video>
+        <div class="grid"></div>
+        <div id="marker">🌙</div>
+        <!-- Overlay AR -->
+        <div id="arAzimuth" class="ar-overlay" style="top:5px;">Azimuth: 0°</div>
+        <div id="arAltitude" class="ar-overlay" style="top:30px;">Tinggi: 0°</div>
+        <div class="crosshair"></div>
+        <div id="arStatus" class="ar-status">Mencari...</div>
+      </div>
+      <button id="startARBtn">▶️ AR & Audio</button>
+      <button id="calibrateBtn">🧭 Kalibrasi Kompas</button>
+    </div>
+    
+    <div id="menuBtn" class="menu-btn">☰</div>
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+      <h3>📑 Menu</h3>
+      <button onclick="location.reload()">🔄 Refresh</button>
+      <button onclick="startCam(); closeMenu()">📷 Aktifkan Kamera</button>
+      <button onclick="calibrateCompass(); closeMenu()">🧭 Kalibrasi Kompas</button>
+      <button onclick="calibrateWithSun(); closeMenu()">☀️ Kalibrasi Matahari</button>
+      <button onclick="window.open('https://mantotv.pages.dev/')">📺 Manto TV</button>
+      <button onclick="window.open('https://adzanpro.pages.dev/')">🕋 Adzan Pro</button>
+      <button onclick="window.open('https://lokasiku.pages.dev/')">📍 MyLoc App</button>
+      <button onclick="window.open('https://www.facebook.com/share/1C8bjd7Xoh','_blank')">👨‍💻 Developer</button>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById("startARBtn").addEventListener("click", ()=>{
+      if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log("Audio diaktifkan oleh user");
+      }
+      document.getElementById("arStatus").innerText = "AR & Audio siap digunakan";
+    });
+    
+    window.addEventListener("load", () => {
+      const splash = document.getElementById("splash");
+      
+      // 🔒 cegah error kalau elemen tidak ditemukan
+      if (!splash) return;
+      
+      // ⏳ durasi tampil splash
+      setTimeout(() => {
+        
+        // 🎬 animasi fade out
+        splash.style.opacity = "0";
+        splash.style.visibility = "hidden";
+        
+        // 🧹 hapus dari tampilan setelah animasi selesai
+        setTimeout(() => {
+          splash.style.display = "none";
+        }, 500);
+      
+      }, 1800); // bisa ubah (1500 - 2500)
+    });
+
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("sw.js");
+    }
+  </script>
+
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    
+    menuBtn.addEventListener("click", ()=>{
+      sidebar.classList.toggle("active");
+      overlay.classList.toggle("active");
+    });
+    
+    overlay.addEventListener("click", ()=>{
+      closeMenu();
+    });
+    
+    function closeMenu(){
+      sidebar.classList.remove("active");
+      overlay.classList.remove("active");
+    }
+  </script>
+  
+</body>
+</html>
