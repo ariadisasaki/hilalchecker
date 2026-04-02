@@ -115,6 +115,11 @@ function getLocation(){
         setInterval(()=>{
             hitungHilal(currentLat, currentLon);
         }, 10 * 1000);
+      
+        // ✅ UI update tiap detik (smooth)
+        setInterval(()=>{
+          renderUI();
+        }, 1000);
 
         // 🔁 Update hijri tiap 1 menit
         setInterval(()=>{
@@ -444,6 +449,27 @@ function getCountdownMaghrib(now, maghrib){
   const menit = Math.floor((sisaJam - jam) * 60);
 
   return `${jam} jam ${menit} menit lagi menuju Maghrib`;
+}
+
+// === RENDER UI ====
+function renderUI(){
+  if(!currentLat || !currentLon) return;
+
+  const now = new Date();
+  const maghribData = hitungMaghrib(currentLat, currentLon);
+  const maghrib = maghribData ? maghribData.decimal : 18;
+
+  // ✅ Insight (pakai data global)
+  const insight = getHijriInsight(hilalDataFull, maghrib, now);
+  document.getElementById('insight').innerHTML = insight;
+
+  // ✅ Countdown maghrib
+  const countdown = getCountdownMaghrib(now, maghrib);
+  document.getElementById('countdownMaghrib').innerText = countdown;
+
+  // ✅ Progress bar
+  const progress = getNextHijriProgress(hilalDataFull.age);
+  document.getElementById('progressBar').style.width = progress + "%";
 }
 
 // ================= HILAL =================
