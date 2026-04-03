@@ -286,6 +286,8 @@ function getHijriInsight(data, maghrib, now){
   const jam = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
 
   const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
+  
+  const ijtima = getIjtimaGlobal();
 
   return `
 🔭 <b>Tinggi Bulan:</b> ${alt.toFixed(2)}°<br>
@@ -312,6 +314,9 @@ Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
 
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
+🕋 <b>Ijtima :</b><br>
+${ijtima.toLocaleString('id-ID')}<br><br>
+
 <b>Penjelasan:</b><br>
 Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
 tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
@@ -322,6 +327,35 @@ tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
 <b>Perkiraan:</b><br>
 Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya.
 `;
+}
+
+// ================= IJTIMA GLOBAL =================
+function getIjtimaGlobal(){
+
+  const now = new Date();
+  const JD = (now.getTime()/86400000)+2440587.5;
+
+  let k = Math.floor((JD - 2451550.09765) / 29.530588853);
+
+  function hitungIjtima(k){
+    const T = k / 1236.85;
+
+    return 2451550.09765
+      + 29.530588853*k
+      + 0.0001337*T*T
+      - 0.000000150*T*T*T
+      + 0.00000000073*T*T*T*T;
+  }
+
+  let JDE = hitungIjtima(k);
+
+  if(JDE > JD){
+    k--;
+    JDE = hitungIjtima(k);
+  }
+
+  const millis = (JDE - 2440587.5) * 86400000;
+  return new Date(millis); // ✅ UTC global moment
 }
 
 // ============== HIJRI REALTIME =============
@@ -378,11 +412,21 @@ function updateHijriRealTime(lat, lon){
             );
             
             const hilal = hitungHilal(lat, lon, maghribTime);
-            
+            // ================= VALIDASI IJTIMA GLOBAL =================
+            const ijtima = getIjtimaGlobal();
+          
+            // Jika ijtima belum terjadi sebelum maghrib → otomatis belum masuk bulan baru
+            if(ijtima > maghribTime){
+              tambahHari = 0;
+              localStorage.setItem(key, tambahHari);
+              console.log("❌ Ijtima belum terjadi sebelum maghrib");
+              return;
+            }
+
             const bisaRukyat = (
-                hilal.alt >= 3 &&
-                hilal.elo >= 6.4 &&
-                hilal.age >= 8
+              hilal.alt >= 3 &&
+              hilal.elo >= 6.4 &&
+              hilal.age >= 8 // sekarang sudah dari ijtima global
             );
             
             tambahHari = bisaRukyat ? 1 : 0;
@@ -708,7 +752,9 @@ function hitungHilalCore(lat, lon, customTime=null){
     + Math.cos(sunDec*rad)*Math.cos(moonDec*rad)*Math.cos((sunRA - moonRA)*rad)
   )*deg;
 
-  const age = elo/12.19*24; // usia bulan dalam jam
+  // ================= AGE BERBASIS IJTIMA GLOBAL =================
+  const ijtima = getIjtimaGlobal();
+  const age = (now - ijtima) / 3600000; // jam
 
   // ================= ILUMINASI =================
   const illumination = (1 - Math.cos(elo * rad)) / 2 * 100;
