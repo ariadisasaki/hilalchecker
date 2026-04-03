@@ -205,7 +205,7 @@ function getLocation(){
     });
 }
 
-// ================= SENSOR (UPGRADE PRO) =================
+// ================= SENSOR =================
 function initSensor(){
 
   let lastAlpha = 0;
@@ -287,9 +287,16 @@ function getHijriInsight(data, maghrib, now){
 
   const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
   
-  const ijtima = getIjtimaGlobal();
-  const ijtimaStr = formatTanggalIndonesia(ijtima);
-
+  const ijtimaNow = getIjtimaGlobal();
+  const ijtimaNext = getNextIjtima();
+  
+  const sudahIjtima = now >= ijtimaNow;
+  const statusIjtima = sudahIjtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
+  const countdownIjtima = getCountdownIjtima(now, ijtimaNext);
+  
+  const ijtimaStr = formatTanggalIndonesia(ijtimaNow);
+  const ijtimaNextStr = formatTanggalIndonesia(ijtimaNext);
+  
   return `
 🔭 <b>Tinggi Bulan:</b> ${alt.toFixed(2)}°<br>
 Menunjukkan posisi bulan dari horizon. 
@@ -315,8 +322,16 @@ Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
 
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
-🕋 <b>Ijtima :</b><br>
-${formatTanggalIndonesia(ijtima)}<br><br>
+🕋 <b>Ijtima Terakhir :</b><br>
+${ijtimaStr}<br><br>
+
+<b>Status Ijtima:</b> ${statusIjtima}<br><br>
+
+🔮 <b>Ijtima Berikutnya :</b><br>
+${ijtimaNextStr}<br><br>
+
+⏳ <b>Menuju Ijtima:</b><br>
+${countdownIjtima}<br><br>
 
 <b>Penjelasan:</b><br>
 Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
@@ -375,6 +390,48 @@ function getIjtimaGlobal(){
 
   const millis = (JDE - 2440587.5) * 86400000;
   return new Date(millis); // ✅ UTC global moment
+}
+
+// === IJTIMA BERIKUTNYA ===
+function getNextIjtima(){
+  const now = new Date();
+  const JD = (now.getTime()/86400000)+2440587.5;
+
+  let k = Math.floor((JD - 2451550.09765) / 29.530588853);
+
+  function hitungIjtima(k){
+    const T = k / 1236.85;
+
+    return 2451550.09765
+      + 29.530588853*k
+      + 0.0001337*T*T
+      - 0.000000150*T*T*T
+      + 0.00000000073*T*T*T*T;
+  }
+
+  let JDE = hitungIjtima(k);
+
+  // 🔥 ambil yang berikutnya
+  if(JDE <= JD){
+    k++;
+    JDE = hitungIjtima(k);
+  }
+
+  const millis = (JDE - 2440587.5) * 86400000;
+  return new Date(millis);
+}
+
+// === HITUNG MUNDUR IJTIMA ===
+function getCountdownIjtima(now, target){
+  let diff = target - now;
+
+  if(diff <= 0) return "Sedang berlangsung / sudah lewat";
+
+  const jam = Math.floor(diff / 3600000);
+  const menit = Math.floor((diff % 3600000)/60000);
+  const detik = Math.floor((diff % 60000)/1000);
+
+  return `${jam} jam ${menit} menit ${detik} detik`;
 }
 
 // ============== HIJRI REALTIME =============
