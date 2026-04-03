@@ -445,78 +445,26 @@ function updateHijriRealTime(lat, lon){
     const maghribData = hitungMaghrib(lat, lon);
     const maghrib = maghribData ? maghribData.decimal : 18;
 
-    // ================== BUFFER (ANTI FLIP) ==================
-    const bufferMenit = 10; // 10 menit setelah maghrib
-    const bufferJam = bufferMenit / 60;
-
-    // ================== KEY HARIAN ==================
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const key = "hijriFix_" + today.toDateString();
-
-    // ================== HAPUS CACHE LAMA ==================
-    Object.keys(localStorage).forEach(k=>{
-        if(k.startsWith("hijriFix_") && k !== key){
-            localStorage.removeItem(k);
-        }
-    });
-
+    // ================== LOGIKA REALTIME ==================
     let tambahHari = 0;
 
-    // ================== LOGIKA FINAL ==================
-    const saved = localStorage.getItem(key);
-    
-    // 🔒 PRIORITAS UTAMA: kalau sudah ada cache → pakai terus
-    if(saved !== null){
-        tambahHari = parseInt(saved);
-        console.log("🔒 LOCK AKTIF (pakai cache):", tambahHari);
-    
-    } else {
-        
-        // ⏳ BELUM ADA KEPUTUSAN → tunggu maghrib + buffer
-        if(jam >= (maghrib + bufferJam)){
+    if(jam >= maghrib){
 
-            console.log("⏳ Buffer selesai → hitung SEKALI pakai waktu maghrib");
-            
-            // 🔥 PENTING: pakai waktu MAGHRIB (bukan now)
-            const maghribTime = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate(),
-                Math.floor(maghrib),
-                Math.floor((maghrib % 1) * 60),
-                0, 0
-            );
-            
-            const hilal = hitungHilal(lat, lon, maghribTime);
-            // ================= VALIDASI IJTIMA GLOBAL =================
-            const ijtima = getIjtimaGlobal();
-          
-            // Jika ijtima belum terjadi sebelum maghrib → otomatis belum masuk bulan baru
-            if(ijtima > maghribTime){
-              tambahHari = 0;
-              localStorage.setItem(key, tambahHari);
-              console.log("❌ Ijtima belum terjadi sebelum maghrib");
-              return;
-            }
+        const hilal = hitungHilal(lat, lon);
+        const ijtima = getIjtimaGlobal();
+
+        // Pastikan ijtima sudah terjadi
+        if(ijtima <= now){
 
             const bisaRukyat = (
-              hilal.alt >= 3 &&
-              hilal.elo >= 6.4 &&
-              hilal.age >= 8 // sekarang sudah dari ijtima global
+                hilal.alt >= 3 &&
+                hilal.elo >= 6.4 &&
+                hilal.age >= 8
             );
-            
+
             tambahHari = bisaRukyat ? 1 : 0;
-            
-            // 🔒 SIMPAN (LOCK SEHARI PENUH)
-            localStorage.setItem(key, tambahHari);
-            
-            console.log("💾 Simpan keputusan FINAL:", tambahHari);
-        
-        } else {
-            
-            // ⏳ sebelum maghrib + buffer → tetap hari lama
-            tambahHari = 0;
-            console.log("⏳ Menunggu maghrib + buffer...");
+
+            console.log("🌙 Realtime keputusan:", tambahHari);
         }
     }
 
