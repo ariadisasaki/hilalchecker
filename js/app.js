@@ -19,9 +19,6 @@ let calibrating = false;
 let currentLat = 0;
 let currentLon = 0;
 let lastPathUpdate = 0;
-let hijriDecision = null;
-let hijriLocked = false;
-let lastMaghribDate = "";
 let declinationGlobal = 0;
 let hilalDataFull = {
   alt: 0,
@@ -441,77 +438,33 @@ function getCountdownIjtima(now, target){
 function updateHijriRealTime(lat, lon){
     const now = new Date();
 
-    // ================== RESET HARI ==================
-    const todayKey = now.toDateString();
-    if(lastMaghribDate !== todayKey){
-        hijriDecision = null;
-        hijriLocked = false;
-        lastMaghribDate = todayKey;
-        console.log("🔄 Reset harian Hijri");
-    }
-
     // ================== WAKTU ==================
-    const jam = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+    const jam = now.getHours() + now.getMinutes()/60;
 
     // ================== MAGHRIB ==================
     const maghribData = hitungMaghrib(lat, lon);
     const maghrib = maghribData ? maghribData.decimal : 18;
 
-    // ================== BUFFER ==================
-    const bufferMenit = 10;
-    const bufferJam = bufferMenit / 60;
-
+    // ================== LOGIKA REALTIME ==================
     let tambahHari = 0;
 
-    // ================== SEBELUM MAGHRIB ==================
-    if(jam < maghrib){
-        tambahHari = 0;
-        hijriDecision = null;
-        hijriLocked = false;
-    }
+    if(jam >= maghrib){
 
-    // ================== SETELAH MAGHRIB ==================
-    else {
-
-        // 🔥 gunakan waktu maghrib (kunci utama hisab!)
-        const maghribTime = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate(),
-            Math.floor(maghrib),
-            Math.floor((maghrib % 1) * 60),
-            0, 0
-        );
-
-        const hilal = hitungHilal(lat, lon, maghribTime);
+        const hilal = hitungHilal(lat, lon);
         const ijtima = getIjtimaGlobal();
 
-        let hasil = 0;
+        // Pastikan ijtima sudah terjadi
+        if(ijtima <= now){
 
-        if(ijtima <= maghribTime){
             const bisaRukyat = (
                 hilal.alt >= 3 &&
                 hilal.elo >= 6.4 &&
                 hilal.age >= 8
             );
-            hasil = bisaRukyat ? 1 : 0;
-        }
 
-        // ================== FASE BUFFER ==================
-        if(jam < maghrib + bufferJam){
-            // ⏳ masih realtime (boleh berubah)
-            tambahHari = hasil;
-            console.log("⏳ Buffer aktif (realtime):", hasil);
-        }
+            tambahHari = bisaRukyat ? 1 : 0;
 
-        // ================== SETELAH BUFFER ==================
-        else {
-            if(!hijriLocked){
-                hijriDecision = hasil;
-                hijriLocked = true;
-                console.log("🔒 Hijri dikunci:", hasil);
-            }
-            tambahHari = hijriDecision ?? hasil;
+            console.log("🌙 Realtime keputusan:", tambahHari);
         }
     }
 
