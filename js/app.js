@@ -320,8 +320,6 @@ Menunjukkan fase bulan (semakin besar → semakin terang).
 Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
 <br><br>
 
-🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
-
 🕋 <b>Ijtima Terakhir :</b><br>
 ${ijtimaStr}<br><br>
 
@@ -332,6 +330,8 @@ ${ijtimaNextStr}<br><br>
 
 ⏳ <b>Menuju Ijtima:</b><br>
 ${countdownIjtima}<br><br>
+
+🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
 <b>Penjelasan:</b><br>
 Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
