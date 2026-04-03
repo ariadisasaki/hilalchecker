@@ -1,4 +1,4 @@
-const CACHE_NAME = "hilal-v3";
+const CACHE_NAME = "hilal-v1.0.1";
 
 self.addEventListener("install", e=>{
   self.skipWaiting();
