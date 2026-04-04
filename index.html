@@ -65,14 +65,52 @@
       <div id="prediksi" class="status">Memuat...</div>
     </div>
 
-    <!-- ANALISIS -->
+    <!-- PREDIKSI HILAL (CARD BARU) -->
     <div class="card">
-      <h3>📊 Analisis Hilal :</h3>
-      <div id="insight" class="insight-text"></div>
-    </div>
-     <!-- KETERANGAN -->
-    <div class="insight-note">
-    🔶 Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal
+      <h3>🔭 Prediksi Visibilitas Hilal</h3>
+      <div class="prediksi-grid">
+        <div class="prediksi-box">
+          <span class="label">Metode Yallop</span>
+          <span id="yallop" class="value">...</span>
+        </div>
+        
+        <div class="prediksi-box">
+          <span class="label">Metode Odeh</span>
+          <span id="odeh" class="value">...</span>
+        </div>
+        
+        <div class="prediksi-box full">
+          <span class="label">Visibility Score</span>
+          <span id="visibility" class="value highlight">0%</span>
+        </div>
+        
+        <div class="prediksi-box full">
+          <span class="label">Status Ijtima</span>
+          <span id="statusIjtima" class="value">...</span>
+        </div>
+      
+      </div>
+      
+      <!-- 🔥 PEMBATAS -->
+      <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">
+      <!-- ⏳ SIKLUS BULAN -->
+      <div class="prediksi-grid">
+        <div class="prediksi-box full">
+          <span class="label">Ijtima Terakhir</span>
+          <span id="ijtimaLast" class="value">...</span>
+        </div>
+        
+        <div class="prediksi-box full">
+          <span class="label">Ijtima Berikutnya</span>
+          <span id="ijtimaNext" class="value">...</span>
+        </div>
+        
+        <div class="prediksi-box full">
+          <span class="label">Menuju Ijtima</span>
+          <span id="countdownIjtima" class="value highlight">...</span>
+        </div>
+      
+      </div>
     </div>
 
     <div class="progress-container">
@@ -83,6 +121,16 @@
       <div class="progress-bar-bg">
         <div id="progressBar" class="progress-bar"></div>
       </div>
+    </div>
+
+    <!-- ANALISIS -->
+    <div class="card">
+      <h3>📊 Analisis Hilal :</h3>
+      <div id="insight" class="insight-text"></div>
+    </div>
+     <!-- KETERANGAN -->
+    <div class="insight-note">
+    🔶 Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal
     </div>
 
     <!-- POSISI HILAL (AR) -->
