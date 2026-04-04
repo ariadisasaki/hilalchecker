@@ -26,7 +26,7 @@
   <!-- HEADER -->
   <div class="header">
     <h1>🌕 Hilal Checker</h1>
-    <p>Metode Hisab Astronomi Modern</p>
+    <p>Hisab Astronomi & Prediksi Rukyat Modern</p>
   </div>
 
   <!-- CONTAINER -->
@@ -65,8 +65,16 @@
       <div id="prediksi" class="status">Memuat...</div>
     </div>
 
-    <div class="info-hijri">
-      <b>📌 Penting:</b><br><br>
+    <!-- TOGGLE INFO HIJRI -->
+    <div class="toggle-wrapper">
+      <button id="toggleHijriBtn" onclick="toggleHijriInfo()">
+        🔽 Tampilkan Informasi
+      </button>
+    </div>
+    
+    <!-- ISI INFO -->
+    <div id="hijriInfoCard" class="info-hijri insight-hidden">
+      <b>❗ PENTING:</b><br><br>
       Dalam kalender Hijriah, hari memang dimulai saat Maghrib. 
       Namun <b>tanggal baru tidak selalu langsung dimulai saat Maghrib</b>.<br><br>
       
@@ -102,7 +110,6 @@
           <span class="label">Status Ijtima</span>
           <span id="statusIjtima" class="value">...</span>
         </div>
-      
       </div>
       
       <!-- 🔥 PEMBATAS -->
@@ -123,7 +130,6 @@
           <span class="label">Menuju Ijtima</span>
           <span id="countdownIjtima" class="value highlight">...</span>
         </div>
-      
       </div>
     </div>
 
@@ -137,16 +143,19 @@
       </div>
     </div>
 
-    <!-- ANALISIS -->
-    <div class="card">
-      <h3>📊 Analisis Hilal :</h3>
+    <!-- TOGGLE PENJELASAN -->
+    <div class="toggle-wrapper">
+      <button id="toggleInsightBtn" onclick="toggleInsight()">
+        🔽 Tampilkan Penjelasan
+      </button>
+    </div>
+    
+    <!-- ANALISIS (TOGGLE) -->
+    <div id="insightCard" class="card insight-hidden">
+      <h3>📊 Penjelasan Hilal</h3>
       <div id="insight" class="insight-text"></div>
     </div>
-     <!-- KETERANGAN -->
-    <div class="insight-note">
-    🔶 Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal
-    </div>
-
+     
     <!-- POSISI HILAL (AR) -->
     <div class="card">
       <div class="camera-wrapper">
