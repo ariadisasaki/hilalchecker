@@ -320,8 +320,7 @@ tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
 - Tidak selalu sinkron dengan umur bulan astronomi<br><br>
 
 <b>Perkiraan:</b><br>
-Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya.
-
+Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya. Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal.
 <br><br>
 
 <b>📘 Penjelasan Prediksi Hilal:</b><br><br>
@@ -1304,4 +1303,42 @@ function updatePrediksiCard(){
 
   document.getElementById("countdownIjtima").innerText =
     getCountdownIjtima(now, ijtimaNext);
+}
+
+// === TOMBOL INSIGHT ====
+function toggleInsight(){
+  const card = document.getElementById("insightCard");
+  const btn = document.getElementById("toggleInsightBtn");
+
+  if(card.classList.contains("insight-hidden")){
+    card.classList.remove("insight-hidden");
+    card.classList.add("insight-show");
+    btn.innerText = "❌ Sembunyikan Penjelasan";
+  } else {
+    card.classList.remove("insight-show");
+    card.classList.add("insight-hidden");
+    btn.innerText = "🔽 Tampilkan Penjelasan";
+  }
+}
+
+// === TOMBOL PENJELASAN ===
+function toggleHijriInfo(){
+  const card = document.getElementById("hijriInfoCard");
+  const btn = document.getElementById("toggleHijriBtn");
+
+  if(card.classList.contains("insight-hidden")){
+    // buka
+    card.classList.remove("insight-hidden");
+
+    // 🔥 set tinggi sesuai isi (INI KUNCI)
+    card.style.maxHeight = card.scrollHeight + "px";
+
+    btn.innerText = "❌ Tutup Informasi";
+  } else {
+    // tutup
+    card.style.maxHeight = "0px";
+    card.classList.add("insight-hidden");
+
+    btn.innerText = "🔽 Tampilkan Informasi";
+  }
 }
