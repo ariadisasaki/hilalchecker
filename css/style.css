@@ -420,3 +420,14 @@ html, body{
 .value.bad{
   color:#ef4444;
 }
+
+.info-hijri{
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  font-size: 13px;
+  line-height: 1.5;
+
+  text-align: justify;
+}
