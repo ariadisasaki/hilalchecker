@@ -1,4 +1,4 @@
-/* ===================== RESET & BODY ===================== */  
+/* ==== RESET & BODY === */  
 body{  
   margin:0;  
   font-family:'Poppins',sans-serif;  
@@ -7,24 +7,24 @@ body{
   color:#fff;  
 }  
   
-/* ===================== HEADER ===================== */  
+/* === HEADER === */  
 .header{  
   text-align:center;  
   padding:10px 0;  
 }  
   
-/* ===================== CONTAINER (FIX UTAMA) ===================== */  
+/* === CONTAINER === */  
 .container{  
   padding:10px 16px; /* kanan = 16px */  
   transition: padding-left 0.3s ease;  
 }  
   
-/* Saat sidebar terbuka → jarak kiri = kanan */  
+/* Saat sidebar terbuka â†’ jarak kiri = kanan */  
 .sidebar.active ~ .container{  
-  padding-left:calc(250px + 16px); /* 🔥 samakan dengan kanan */  
+  padding-left:calc(250px + 16px); /* ðŸ”¥ samakan dengan kanan */  
 }  
   
-/* ===================== CARD ===================== */  
+/* === CARD === */  
 .card{  
   background: rgba(255,255,255,0.08);  
   border-radius:20px;  
@@ -41,7 +41,7 @@ body{
   to{opacity:1; transform:translateY(0);}  
 }  
   
-/* ===================== DATA GRID ===================== */  
+/* === DATA GRID === */  
 .data-grid{  
   display:grid;  
   grid-template-columns:1fr 1fr;  
@@ -65,7 +65,7 @@ body{
   font-weight:600;  
 }  
   
-/* ===================== STATUS ===================== */  
+/* === STATUS === */  
 .status{  
   text-align:center;  
   font-size:16px;  
@@ -78,7 +78,7 @@ body{
 .status.ok{ background:#1f8f4e; }  
 .status.no{ background:#8f1f1f; }  
   
-/* ===================== CAMERA ===================== */  
+/* === KAMERA === */  
 .camera-wrapper{  
   position: relative;  
   overflow: hidden;  
@@ -99,7 +99,7 @@ video{
   z-index:1;  
 }  
   
-/* ===================== MARKER ===================== */  
+/* === MARKER === */  
 #marker{  
   position:absolute;  
   left:50%;  
@@ -110,7 +110,7 @@ video{
   font-size:28px;  
   color:lime;  
   
-  /* 🔥 bersihin total */  
+  /* ðŸ”¥ bersihin total */  
   background:transparent !important;  
   border:none !important;  
   box-shadow:none !important;  
@@ -124,7 +124,7 @@ video{
   margin:0;  
 }  
   
-/* ===================== CROSSHAIR ===================== */  
+/* === CROSSHAIR === */  
 .crosshair{  
   position:absolute;  
   top:50%;  
@@ -137,7 +137,7 @@ video{
   z-index:3;  
 }  
   
-/* ===================== GRID ===================== */  
+/* === GRID === */  
 .grid{  
   position:absolute;  
   width:100%;  
@@ -151,7 +151,7 @@ video{
   z-index:2;  
 }  
   
-/* ===================== AR ===================== */  
+/* === AR ==== */  
 .ar-status{  
   position:absolute;  
   bottom:10px;  
@@ -175,7 +175,7 @@ video{
   font-size:14px;  
 }  
   
-/* ===================== BUTTON ===================== */  
+/* ==== TOMBOL === */  
 button{  
   width:100%;  
   padding:12px;  
@@ -192,7 +192,7 @@ button{
   background:linear-gradient(135deg,#ff7b00,#ffd700);  
 }  
   
-/* ===================== HILAL PATH ===================== */  
+/* === JALUR BULAN === */  
 .hilal-path-dot{  
   position:absolute;  
   width:6px;  
@@ -201,7 +201,7 @@ button{
   background:rgba(0,198,255,0.7);  
 }  
   
-/* ===================== SIDEBAR ===================== */  
+/* === SIDEBAR === */  
 .menu-btn{  
   position: fixed;  
   top: 15px;  
@@ -234,13 +234,13 @@ button{
   transform: translateX(0);  
 }  
   
-/* ===================== SIDEBAR LAYOUT ===================== */  
+/* === SIDEBAR LAYOUT === */  
 .sidebar{  
   display:flex;  
   flex-direction:column;  
 }  
   
-/* ===================== OVERLAY ===================== */  
+/* === OVERLAY === */  
 .overlay{  
   position: fixed;  
   top:0;  
@@ -259,13 +259,13 @@ button{
   visibility:visible;  
 }  
   
-/* ===================== HIDE BUTTON DARI CARD ===================== */  
+/* === HIDE BUTTON DARI CARD === */  
 #startARBtn,  
 #calibrateBtn{  
   display:none;  
 }  
   
-/* ===================== SPLASH ===================== */  
+/* === SPLASH === */  
 html, body{  
   height:100%;  
 }  
@@ -371,7 +371,7 @@ html, body{
   animation: pulse 1.5s infinite;  
 }  
   
-/* ===================== PREDIKSI HILAL ===================== */  
+/* === PREDIKSI HILAL === */  
 .prediksi-grid{  
   display:grid;  
   grid-template-columns:1fr 1fr;  
@@ -432,7 +432,7 @@ html, body{
   text-align: justify;  
 }  
   
-/* ===================== TOGGLE BUTTON ===================== */
+/* === TOGGLE BUTTON === */
 
 /* Wrapper tombol */
 .toggle-wrapper{
@@ -448,7 +448,7 @@ html, body{
   border: none;
   background: linear-gradient(135deg,#22c55e,#38bdf8);
   
-  color: #0f172a; /* 🔥 teks dibuat gelap (biru tua) */
+  color: #0f172a; /* ðŸ”¥ teks dibuat gelap (biru tua) */
   
   cursor: pointer;
   font-size: 13px;
@@ -456,7 +456,7 @@ html, body{
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 
-  /* 🔥 bantu kontras */
+  /* ðŸ”¥ bantu kontras */
   text-shadow: 0 1px 2px rgba(255,255,255,0.3);
 }
 
@@ -473,7 +473,7 @@ html, body{
   transform: scale(0.97);
 }
 
-/* ===================== CARD TOGGLE ===================== */
+/* === CARD TOGGLE === */
 
 #insightCard{
   overflow: hidden;
@@ -492,4 +492,51 @@ html, body{
   max-height: none;
   opacity: 1;
   margin-top: 10px;
+}
+
+/* === TOGGLE HIJRI MODE === */
+.hijri-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 10px 0;
+  gap: 10px;
+}
+
+#hijriModeLabel {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff; /* warna teks */
+}
+
+#hijriModeToggle {
+  width: 40px;
+  height: 20px;
+  appearance: none;
+  background-color: #ccc;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.3s;
+}
+
+#hijriModeToggle:checked {
+  background-color: #4caf50; /* hijau saat aktif */
+}
+
+#hijriModeToggle::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #fff;
+  transition: 0.3s;
+}
+
+#hijriModeToggle:checked::before {
+  transform: translateX(20px);
 }
