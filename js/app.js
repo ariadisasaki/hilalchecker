@@ -79,35 +79,6 @@ function initHijriToggle() {
   });
 }
 
-// === UPDATE HIJRI ===
-async function updateHijriRealTime(lat, lon) {
-  if (!lat || !lon) return;
-
-  let result;
-  if (modeHijri) {
-    result = getHijriAuto(lat, lon); // Hisab langsung sync
-  } else {
-    const hijriEl = document.getElementById("hijri");
-    if (hijriEl) hijriEl.innerText = "Menunggu rukyat... 🌙";
-    result = await getHijriRukyat(lat, lon); // Rukyat async
-  }
-
-  const { d, m, y } = result;
-  const bulan = [
-    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
-    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
-    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
-  ];
-
-  tanggalHijriGlobal = d;
-  hijriMonthIndex = m - 1;
-
-  const hijriEl = document.getElementById("hijri");
-  if (hijriEl) {
-    hijriEl.innerText = `${d} ${bulan[hijriMonthIndex]} ${y} H`;
-  }
-}
-
 // === INISIALISASI SETELAH DOM READY ===
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initHijriToggle);
@@ -115,18 +86,23 @@ if (document.readyState === "loading") {
   initHijriToggle();
 }
 
-// === FUNGSI REFRESH HIJRI ===
-function updateHijriRealTime(lat, lon) {
+// === UPDATE HIJRI REALTIME ===
+async function updateHijriRealTime(lat, lon) {
   if (!lat || !lon) return;
 
   let result;
+
   if (modeHijri) {
     result = getHijriAuto(lat, lon); // Hisab
   } else {
-    result = getHijriRukyat(lat, lon); // Rukyat
+    const hijriEl = document.getElementById("hijri");
+    if (hijriEl) hijriEl.innerText = "Menunggu rukyat... 🌙";
+
+    result = getHijriRukyat(lat, lon); // tetap sync
   }
 
   const { d, m, y } = result;
+
   const bulan = [
     "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
     "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
@@ -136,12 +112,10 @@ function updateHijriRealTime(lat, lon) {
   tanggalHijriGlobal = d;
   hijriMonthIndex = m - 1;
 
-  const hijriEl = document.getElementById("hijri");
-  if (hijriEl) {
-    hijriEl.innerText = `${d} ${bulan[hijriMonthIndex]} ${y} H`;
-  }
+  document.getElementById('hijri').innerText =
+    `${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
-
+  
 // === INIT ===
 window.onload = () => {
   startClock();
@@ -548,31 +522,6 @@ function getCountdownIjtima(now, target){
   const detik = Math.floor((diff % 60000)/1000);
 
   return `${jam} jam ${menit} menit ${detik} detik`;
-}
-
-// === HIJRI REALTIME ===
-function updateHijriRealTime(lat, lon){
-  let result;
-
-  if(!modeHijri){ // false = rukyat
-    result = getHijriRukyat(lat, lon);
-  } else {       // true = hisab
-    result = getHijriAuto(lat, lon);
-  }
-
-  const { d, m, y } = result;
-
-  const bulan = [
-    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
-    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
-    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
-  ];
-
-  tanggalHijriGlobal = d;
-  hijriMonthIndex = m - 1;
-
-  document.getElementById('hijri').innerText =
-    `${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
 // === REFRACTION & PARALLAX ===
@@ -1055,13 +1004,18 @@ function autoReloadAtMaghrib(lat, lon){
   if(diff < 0) diff = 0;
 
   setTimeout(()=>{
-    localStorage.setItem(todayKey, now.toDateString());
-    
-    console.log("🌙 Maghrib tercapai, update Hijri");
-    
-    updateHijriRealTime(lat, lon); // 🔥 update tanpa reload
-  
-  }, diff);
+  localStorage.setItem(todayKey, now.toDateString());
+
+  console.log("🌙 Maghrib tercapai, update Hijri");
+
+  // 🔥 PANGGIL 2x (fix delay hilal & async)
+  updateHijriRealTime(lat, lon);
+
+  setTimeout(()=>{
+    updateHijriRealTime(lat, lon);
+  }, 2000);
+
+}, diff);
 }
 
 // === AR ===
@@ -1508,32 +1462,39 @@ function getHijriRukyat(lat, lon){
   const maghrib = maghribData ? maghribData.decimal : 18;
 
   let tambahHari = 0;
-
+  
+  // 🔥 LOGIKA MAGHRIB (WAJIB ADA)
+  if(jam >= maghrib){
+    tambahHari = 1;
+  }
+  
+  // 🔥 KHUSUS AKHIR BULAN (29+)
   if(tanggalHijriGlobal >= 29 && jam >= maghrib){
 
-    const hilal = hitungHilalCore(lat, lon);
-    const ijtima = getIjtimaGlobal();
+  const hilal = hitungHilalCore(lat, lon);
+  const ijtima = getIjtimaGlobal();
 
-    const maghribDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      Math.floor(maghrib),
-      Math.floor((maghrib % 1)*60),
-      0, 0
+  const maghribDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    Math.floor(maghrib),
+    Math.floor((maghrib % 1)*60),
+    0, 0
+  );
+
+  if(ijtima <= maghribDate){
+
+    const bisaRukyat = (
+      hilal.alt >= 3 &&
+      hilal.elo >= 6.4 &&
+      hilal.age >= 8
     );
 
-    if(ijtima <= maghribDate){
-
-      const bisaRukyat = (
-        hilal.alt >= 3 &&
-        hilal.elo >= 6.4 &&
-        hilal.age >= 8
-      );
-
-      tambahHari = bisaRukyat ? 1 : 0;
-    }
+    // ❗ override hanya kalau akhir bulan
+    tambahHari = bisaRukyat ? 1 : 0;
   }
+}
 
   const localMidnight = new Date(
     now.getFullYear(),
