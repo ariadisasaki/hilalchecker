@@ -1520,103 +1520,109 @@ function getHijriRukyat(lat, lon){
 
   const now = new Date();
 
-  // 🔹 Waktu sekarang dalam jam desimal
-  const jamNow = now.getHours() + now.getMinutes()/60;
+  // === AMBIL DATA ===
+  let data = JSON.parse(localStorage.getItem("hijriRukyatData"));
 
-  // 🔹 Maghrib lokal
-  const maghribData = hitungMaghrib(lat, lon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
-
-  // 🔹 Default: belum tambah hari
-  let tambahHari = 0;
-
-  // === LOGIKA DASAR (TANGGAL 1–28) ===
-  if(jamNow >= maghrib){
-    tambahHari = 1;
+  // 🔥 INIT JIKA BELUM ADA
+  if(!data){
+    const awal = getHijriAuto(lat, lon);
+    data = {
+      d: awal.d,
+      m: awal.m,
+      y: awal.y,
+      lastUpdate: now.toDateString()
+    };
+    localStorage.setItem("hijriRukyatData", JSON.stringify(data));
+    return data;
   }
 
-  // === KHUSUS AKHIR BULAN (29+) ===
-  if(jamNow >= maghrib){
+  // === HITUNG SELISIH HARI ===
+  const last = new Date(data.lastUpdate);
+  const diffTime = now - last;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // 🔥 Ambil data hilal REAL-TIME (bukan global lama)
-    const hilal = hitungHilalCore(lat, lon);
+  // 🔥 LOOP UNTUK MENGECEJAR HARI YANG TERLEWAT
+  for(let i = 0; i <= diffDays; i++){
 
-    // 🔥 Waktu ijtima
-    const ijtima = getIjtimaGlobal();
+    // tanggal yang sedang diproses
+    const currentDate = new Date(last);
+    currentDate.setDate(currentDate.getDate() + i);
 
-    // 🔥 Maghrib hari ini (format Date)
-    const maghribDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      Math.floor(maghrib),
-      Math.floor((maghrib % 1)*60),
-      0, 0
-    );
+    // hitung maghrib hari tersebut
+    const maghribData = hitungMaghrib(lat, lon, currentDate);
+    const maghrib = maghribData ? maghribData.decimal : 18;
 
-    // 🔥 Cek apakah sudah ijtima sebelum maghrib
-    const sudahIjtima = ijtima <= maghribDate;
+    // tentukan jam (hari terakhir pakai jam real)
+    const jam = (i === diffDays)
+      ? now.getHours() + now.getMinutes()/60
+      : 24;
 
-    // 🔥 Kriteria MABIMS
-    const imkanMABIMS = (
-      hilal.alt >= 3 &&
-      hilal.elo >= 6.4 &&
-      hilal.age >= 8
-    );
+    // hanya proses jika sudah maghrib
+    if(jam >= maghrib){
 
-    // === 🔴 LOGIKA KRUSIAL ===
-    if(tanggalHijriGlobal === 29){
-
-      if(sudahIjtima && imkanMABIMS){
-        // ✅ Hilal terlihat → bulan baru
-        tambahHari = 1;
-      } else {
-        // ❌ Tidak terlihat → tetap hari 29 (menuju 30)
-        tambahHari = 0;
+      // === TANGGAL 1–28 ===
+      if(data.d >= 1 && data.d <= 28){
+        data.d += 1;
       }
 
-    } else if(tanggalHijriGlobal >= 30){
-      // 🔥 Otomatis istikmal
-      tambahHari = 1;
-    }
+      // === TANGGAL 29 (RUKYAT) ===
+      else if(data.d === 29){
 
+        const maghribDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          Math.floor(maghrib),
+          Math.floor((maghrib % 1)*60),
+          0, 0
+        );
+
+        const hilal = hitungHilalCore(lat, lon, maghribDate);
+
+        const ijtima = getIjtimaGlobal();
+        const sudahIjtima = ijtima <= maghribDate;
+
+        const imkanMABIMS = (
+          hilal.alt >= 3 &&
+          hilal.elo >= 6.4 &&
+          sudahIjtima
+        );
+
+        if(imkanMABIMS){
+          // 🌙 BULAN BARU
+          data.d = 1;
+          data.m += 1;
+
+          if(data.m > 12){
+            data.m = 1;
+            data.y += 1;
+          }
+
+        } else {
+          // 📅 ISTIKMAL
+          data.d = 30;
+        }
+      }
+
+      // === TANGGAL 30 ===
+      else if(data.d === 30){
+        data.d = 1;
+        data.m += 1;
+
+        if(data.m > 12){
+          data.m = 1;
+          data.y += 1;
+        }
+      }
+
+    }
   }
 
-  // === KONVERSI JD → HIJRI ===
-  const localMidnight = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    0,0,0,0
-  );
+  // === UPDATE TERAKHIR ===
+  data.lastUpdate = now.toDateString();
+  localStorage.setItem("hijriRukyatData", JSON.stringify(data));
 
-  const utcMidnight = localMidnight.getTime() - (localMidnight.getTimezoneOffset()*60000);
-
-  let jd = Math.floor((utcMidnight/86400000)+2440587.5) + tambahHari;
-
-  let l = jd - 1948440 + 10632;
-  let n = Math.floor((l-1)/10631);
-  l = l - 10631*n + 354;
-
-  let j = (Math.floor((10985-l)/5316))*(Math.floor((50*l)/17719))
-        +(Math.floor(l/5670))*(Math.floor((43*l)/15238));
-
-  l = l - (Math.floor((30-j)/15))*(Math.floor((17719*j)/50))
-        - (Math.floor(j/16))*(Math.floor((15238*j)/43)) + 29;
-
-  let m = Math.floor((24*l)/709);
-  let d = l - Math.floor((709*m)/24);
-  let y = 30*n + j - 30;
-
-  // 🔹 Offset manual (opsional)
-  const offset = parseInt(localStorage.getItem("hijriOffset") || 0);
-  d += offset;
-
-  // 🔹 Clamp aman
-  if(d < 1) d = 1;
-  if(d > 30) d = 30;
-
-  return { d, m, y };
+  return data;
 }
 
 // === TOGGLE HIJRI HISAB ===
