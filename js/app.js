@@ -756,22 +756,27 @@ function hitungHilal(lat, lon, customTime=null){
 
   // 🔸 TANGGAL 29 (KRUSIAL)
   else if(tanggalHijriGlobal === 29){
-    
-    if(imkanMABIMS){
-      statusEl.innerText = "✅ Imkan Rukyat (MABIMS)";
-      prediksiEl.innerText =
-        "Hilal memenuhi kriteria MABIMS → berpotensi terlihat\n" +
-        `Alt: ${alt.toFixed(2)}° (≥ 3°)\n` +
-        `Elo: ${elo.toFixed(2)}° (≥ 6.4°)`;
-    } else {
-      statusEl.innerText = "❌ Istikmal";
-      prediksiEl.innerText =
-        "Hilal belum memenuhi kriteria MABIMS → bulan digenapkan 30 hari\n" +
-        `Alt: ${alt.toFixed(2)}°\n` +
-        `Elo: ${elo.toFixed(2)}°`;
-    }
 
+  if(imkanMABIMS){
+    statusEl.innerText = "✅ Imkan Rukyat (MABIMS)";
+    
+    prediksiEl.innerText =
+      "Hilal memenuhi kriteria MABIMS → berpotensi terlihat\n" +
+      `Alt: ${alt.toFixed(2)}° (≥ 3°)\n` +
+      `Elo: ${elo.toFixed(2)}° (≥ 6.4°)\n` +
+      `Umur Bulan: ${age.toFixed(1)} jam`;
+      
+  } else {
+    statusEl.innerText = "❌ Istikmal";
+    
+    prediksiEl.innerText =
+      "Hilal belum memenuhi kriteria MABIMS → bulan digenapkan 30 hari\n" +
+      `Alt: ${alt.toFixed(2)}°\n` +
+      `Elo: ${elo.toFixed(2)}°\n` +
+      `Umur Bulan: ${age.toFixed(1)} jam`;
   }
+
+}
 
   // 🔸 TANGGAL 30
     else {
