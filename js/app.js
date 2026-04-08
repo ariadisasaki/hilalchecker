@@ -405,7 +405,7 @@ Menunjukkan fase bulan (semakin besar → semakin terang).
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
 <b>Penjelasan:</b><br>
-Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
+Walaupun umur bulan mencapai ${(age/24).toFixed(0)} hari,
 tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
 - Awal bulan ditentukan oleh rukyat/hisab<br>
 - Pergantian hari terjadi saat Maghrib<br>
