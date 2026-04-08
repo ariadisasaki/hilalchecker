@@ -49,10 +49,6 @@
       Aplikasi ini menggunakan metode <b>Imkan Rukyat</b>, yaitu:
       awal bulan hanya ditetapkan jika <b>hilal memungkinkan untuk terlihat</b>. Penentuan awal bulan harus terpenuhi syarat Tinggi Bulan ≥ 3°, Elongasi Bulan ≥ 6.4° dan Umur Bulan ≥ 8 jam sejak terjadinya Ijtima (konjungsi) yaitu Bulan dan Matahari berada pada posisi sejajar. <b><i>(Baca penjelasan yang ada di bagian bawah aplikasi ini).</i></b><br><br>
       
-      Dalam kalender Hijriah, hari memang dimulai saat Maghrib. 
-      Namun <b>tanggal baru tidak selalu langsung dimulai saat Maghrib</b>.<br><br>
-      
-      Jadi walaupun sudah Maghrib:<br>
       ❌ Jika hilal belum memenuhi syarat → bulan digenapkan (Istikmal)<br>
       ✅ Jika hilal memenuhi syarat → masuk bulan baru<br><br>
       Hal ini sesuai dengan praktek rukyat dalam penentuan awal bulan Hijriah.
@@ -99,7 +95,7 @@
 
     <!-- PREDIKSI HILAL (CARD BARU) -->
     <div class="card">
-      <h3>🔭 Prediksi Visibilitas Hilal</h3>
+      <h3>🔭 Visibilitas Hilal</h3>
       <div class="prediksi-grid">
         <div class="prediksi-box">
           <span class="label">Metode Yallop</span>
@@ -251,6 +247,10 @@
       sidebar.classList.remove("active");
       overlay.classList.remove("active");
     }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
   </script>
 </body>
 </html>
