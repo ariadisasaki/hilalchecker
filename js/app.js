@@ -424,33 +424,18 @@ function raDecToAltAz(ra, dec, lat, lon, date){
 // === ALTAZ TO XY ===
 function altAzToXY(alt, azi){
 
-  console.log("DEBUG ALT:", alt);
-  console.log("DEBUG AZI:", azi);
+  if(alt === undefined || azi === undefined) return null;
+  if(isNaN(alt) || isNaN(azi)) return null;
+  if(alt < 0) return null;
 
-  if(alt === undefined || azi === undefined){
-    console.log("❌ undefined");
-    return null;
-  }
+  // normalisasi
+  azi = (azi + 360) % 360;
 
-  if(isNaN(alt) || isNaN(azi)){
-    console.log("❌ NaN");
-    return null;
-  }
+  // 🔥 BALIK ARAH AZIMUTH
+  let x = ((360 - azi) / 360) * canvas.width;
 
-  if(alt < 0){
-    console.log("❌ di bawah horizon");
-    return null;
-  }
-
-  const rad = Math.PI / 180;
-
-  let r = (90 - alt) / 90;
-  let angle = azi * rad;
-
-  let x = canvas.width/2 + r * Math.sin(angle) * canvas.width/2;
-  let y = canvas.height/2 - r * Math.cos(angle) * canvas.height/2;
-
-  console.log("✅ XY:", x, y);
+  // altitude tetap
+  let y = canvas.height - (alt / 90) * canvas.height;
 
   return { x, y };
 }
