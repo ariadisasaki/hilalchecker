@@ -20,7 +20,10 @@ let currentLat = 0;
 let currentLon = 0;
 let lastPathUpdate = 0;
 let declinationGlobal = 0;
+let altitudeOffset = 0;
 let arSpeed = 1;
+let running = true;
+let loopId = null;
 let hilalDataFull = {
   alt: 0,
   azi: 0,
@@ -35,6 +38,73 @@ let modeHijri = true; // default: Hisab
 const savedMode = localStorage.getItem("modeHijri");
 if (savedMode !== null) {
   modeHijri = savedMode === "true";
+}
+
+let stars = [];
+
+// ⭐ DATA BINTANG REAL
+const STAR_CATALOG = [
+  ["Sirius", 101.287, -16.716, -1.46],
+  ["Canopus", 95.987, -52.695, -0.74],
+  ["Arcturus", 213.915, 19.182, -0.05],
+  ["Vega", 279.234, 38.783, 0.03],
+  ["Capella", 79.172, 45.997, 0.08],
+  ["Rigel", 78.634, -8.202, 0.18],
+  ["Procyon", 114.825, 5.225, 0.38],
+  ["Achernar", 24.428, -57.236, 0.46],
+  ["Betelgeuse", 88.793, 7.407, 0.50],
+  ["Hadar", 210.955, -60.373, 0.61],
+  ["Altair", 297.695, 8.868, 0.77],
+  ["Acrux", 186.650, -63.099, 0.76],
+  ["Aldebaran", 68.980, 16.509, 0.85],
+  ["Spica", 201.298, -11.161, 0.97],
+  ["Antares", 247.351, -26.432, 1.06],
+  ["Pollux", 113.650, 28.026, 1.14],
+  ["Fomalhaut", 344.412, -29.622, 1.16],
+  ["Deneb", 310.358, 45.280, 1.25],
+  ["Mimosa", 191.930, -59.688, 1.25]
+];
+
+// === GLOBAL STATE HILAL ENGINE ===
+let ctx, canvas;
+
+// posisi benda langit global (opsional cache)
+let sun = { alt: 0, azi: 0 };
+let moon = { alt: 0, azi: 0, illuminated: 0 };
+
+// katalog bintang
+let star_catalog = [];
+
+// threshold twilight
+const TWILIGHT_ALT = -6;
+
+// === INIT PLANETARIUM ===
+function initPlanetarium(){
+  canvas = document.getElementById("planetarium");
+  ctx = canvas.getContext("2d");
+
+  resizeCanvas();
+
+  window.addEventListener("resize", resizeCanvas);
+  
+  initStars();
+
+  requestAnimationFrame(loopPlanetarium);
+}
+
+// === UBAH CANVAS ===
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+// === FAKTOR VISIBILITAS ====
+function getVisibilityFactor(sunAlt){
+  if(sunAlt > 0) return 0;              // siang → bintang hilang
+  if(sunAlt > -6) return (0 - sunAlt)/6;   // senja terang
+  if(sunAlt > -12) return (6 - (sunAlt+6))/6; // senja medium
+  if(sunAlt > -18) return (12 - (sunAlt+12))/6; // senja gelap
+  return 1; // malam total
 }
 
 // === INISIALISASI TOGGLE HIJRI ===
@@ -127,6 +197,7 @@ window.onload = () => {
   startClock();
   getLocation();
   initSensor();
+  initPlanetarium();
 
   // === UKURAN CANVAS ===
   const canvas = document.getElementById("marker");
@@ -160,6 +231,538 @@ window.onload = () => {
   }, { once:true });
 };
 
+// === DETEKSI SIANG SENJA MALAM ===
+function isDayTime() {
+  return sun.alt > 0;
+}
+
+function isTwilight() {
+  return sun.alt <= 0 && sun.alt > TWILIGHT_ALT;
+}
+
+function isNight() {
+  return sun.alt <= TWILIGHT_ALT;
+}
+
+// === SISTEM WARNA LABEL ===
+function getLabelColor(alpha = 1) {
+
+  if (isDayTime()) {
+    return `rgba(0,0,0,${alpha})`; // siang → hitam
+  }
+
+  if (isTwilight()) {
+    return `rgba(200,200,200,${alpha})`; // senja → abu terang
+  }
+
+  return `rgba(255,255,255,${alpha})`; // malam → putih
+}
+
+// === TULIS LABEL ===
+function drawLabel(text, x, y, colorOverride = null){
+
+  const alpha = 1;
+
+  let color;
+
+  // 🌞 Siang = hitam, malam = putih
+  if(colorOverride){
+    color = colorOverride;
+  } else if(isDayTime()){
+    color = `rgba(0,0,0,${alpha})`;
+  } else if(sun.alt > TWILIGHT_ALT){
+    color = `rgba(200,200,200,${alpha})`;
+  } else {
+    color = `rgba(255,255,255,${alpha})`;
+  }
+
+  ctx.save();
+
+  // 🔥 shadow agar terbaca di background
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 3;
+
+  ctx.fillStyle = color;
+  ctx.font = "12px sans-serif";
+  ctx.textAlign = "center";
+
+  // 🔥 posisi di ATAS tengah objek
+  ctx.fillText(text, x, y - 14);
+
+  ctx.restore();
+}
+
+// === POSISI LABEL ===
+function drawLabelTopCenter(text, x, y, color, fontSize = 12, offsetY = 12){
+
+  ctx.font = `${fontSize}px Arial`;
+
+  // ukur lebar teks biar bisa center
+  const textWidth = ctx.measureText(text).width;
+
+  // posisi center horizontal
+  const tx = x - textWidth / 2;
+
+  // posisi atas objek
+  const ty = y - offsetY;
+
+  ctx.fillStyle = color;
+
+  ctx.fillText(text, tx, ty);
+}
+
+// === LANGIT KE LAYAR ===
+function skyToScreen(alt, azi){
+
+  const r = (90 - alt) / 90;
+
+  const x = canvas.width/2 + r * Math.sin(azi * Math.PI/180) * canvas.width/2;
+  const y = canvas.height/2 - r * Math.cos(azi * Math.PI/180) * canvas.height/2;
+
+  return { x, y };
+}
+
+// === GRID LANGIT ===
+function drawSkyGrid(pitch, heading){
+
+  const grid = document.getElementById("skyGrid");
+  if(!grid) return;
+
+  grid.innerHTML = "";
+
+  const width = grid.clientWidth;
+  const height = grid.clientHeight;
+
+  const FOV = 60;
+
+  // MODE AGAR TIDAK RAMAI
+  const minimal = true;
+
+  let altSteps = minimal ? [0] : [-30,-15,0,15,30];
+  let azSteps  = minimal ? [-30,0,30] : [-60,-30,0,30,60];
+
+  // === HORIZONTAL (ALTITUDE) ===
+  altSteps.forEach(alt => {
+
+    let deltaAlt = alt - pitch;
+
+    // 🔥 hanya dekat horizon
+    if(Math.abs(deltaAlt) > 40) return;
+
+    let y = height/2 - (deltaAlt / FOV) * height;
+
+    if(y < 0 || y > height) return;
+
+    const line = document.createElement("div");
+    line.className = "grid-line grid-h";
+    line.style.top = y + "px";
+
+    if(alt === 0){
+      line.style.background = "rgba(255,255,255,0.35)";
+    }
+
+    grid.appendChild(line);
+  });
+
+  // === VERTIKAL (AZIMUTH) ===
+  azSteps.forEach(az => {
+
+    let x = width/2 + (az / FOV) * width;
+
+    if(x < 0 || x > width) return;
+
+    const line = document.createElement("div");
+    line.className = "grid-line grid-v";
+    line.style.left = x + "px";
+
+    if(az === 0){
+      line.style.background = "rgba(255,255,255,0.35)";
+    }
+
+    grid.appendChild(line);
+  });
+}
+
+// === INIT BINTANG ===
+function initStars(){
+
+  // ⭐ bintang katalog (tetap)
+  stars = STAR_CATALOG.map(s => ({
+    name: s[0],
+    ra: s[1],
+    dec: s[2],
+    mag: s[3],
+    real: true
+  }));
+
+  // ⭐ tambahan bintang random
+  const extraStars = 1000; // 🔥 bisa kamu ubah (500–3000)
+
+  for(let i=0;i<extraStars;i++){
+    stars.push({
+      ra: Math.random() * 360,
+      dec: (Math.random() * 180) - 90,
+      mag: Math.random() * 6 + 1, // redup
+      real: false
+    });
+  }
+}
+
+// === KONVERSI DEC TO ALTAZ ===
+function raDecToAltAz(ra, dec, lat, lon, date){
+
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
+
+  const JD = (date.getTime()/86400000)+2440587.5;
+  const T = (JD - 2451545) / 36525;
+
+  // 🔥 GMST
+  let GMST = 280.46061837 + 360.98564736629*(JD - 2451545);
+  GMST = (GMST % 360 + 360) % 360;
+
+  const LST = GMST + lon;
+
+  const HA = (LST - ra);
+
+  const alt = Math.asin(
+    Math.sin(lat*rad)*Math.sin(dec*rad) +
+    Math.cos(lat*rad)*Math.cos(dec*rad)*Math.cos(HA*rad)
+  ) * deg;
+
+  let azi = Math.atan2(
+    -Math.sin(HA*rad),
+    Math.tan(dec*rad)*Math.cos(lat*rad) -
+    Math.sin(lat*rad)*Math.cos(HA*rad)
+  ) * deg;
+
+  if(azi < 0) azi += 360;
+
+  return { alt, azi };
+}
+
+// === ALTAZ TO XY ===
+function altAzToXY(alt, azi){
+
+  console.log("DEBUG ALT:", alt);
+  console.log("DEBUG AZI:", azi);
+
+  if(alt === undefined || azi === undefined){
+    console.log("❌ undefined");
+    return null;
+  }
+
+  if(isNaN(alt) || isNaN(azi)){
+    console.log("❌ NaN");
+    return null;
+  }
+
+  if(alt < 0){
+    console.log("❌ di bawah horizon");
+    return null;
+  }
+
+  const rad = Math.PI / 180;
+
+  let r = (90 - alt) / 90;
+  let angle = azi * rad;
+
+  let x = canvas.width/2 + r * Math.sin(angle) * canvas.width/2;
+  let y = canvas.height/2 - r * Math.cos(angle) * canvas.height/2;
+
+  console.log("✅ XY:", x, y);
+
+  return { x, y };
+}
+    
+// === BACKGROUND LANGIT ===
+function drawSkyBackground(){
+
+  let sun = hitungMatahari(currentLat, currentLon);
+  let vf = getVisibilityFactor(sun.alt);
+
+  let r = Math.floor(10 + (135 * (1 - vf)));
+  let g = Math.floor(10 + (206 * (1 - vf)));
+  let b = Math.floor(30 + (235 * (1 - vf)));
+
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+}
+
+// === GAMBAR BULAN ===
+function drawMoon(){
+
+  let moonData = hitungHilalCore(currentLat, currentLon);
+  if(!moonData || moonData.alt < -90) return;
+
+  let pos = altAzToXY(moonData.alt, moonData.azi);
+  if(!pos) return;
+
+  let sun = hitungMatahari(currentLat, currentLon);
+
+  // =========================
+  // 🌫 VISIBILITY SYSTEM
+  // =========================
+
+  let vf = getVisibilityFactor(sun.alt);
+
+  // 🌙 fase bulan (0 = gelap, 1 = purnama)
+  let phase = moonData.illumination ?? 0.5;
+
+  // =========================
+  // 🌙 FINAL BRIGHTNESS
+  // =========================
+
+  // moon tetap terlihat siang tapi lebih redup
+  let alpha = (0.2 + 0.8 * phase) * vf;
+
+  // tambahan rule realistis:
+  if(sun.alt > 0){
+    alpha *= 0.25; // siang → redup tapi masih ada
+  } 
+  else if(sun.alt > -6){
+    alpha *= 0.6;  // senja → agak jelas
+  }
+
+  // =========================
+  // 🌙 DRAW MOON BODY
+  // =========================
+
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+
+  ctx.fillStyle = `rgba(255, 255, 210, ${alpha})`;
+  ctx.fill();
+
+  // 🌟 glow lembut (moonlight effect)
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.15})`;
+  ctx.fill();
+
+  // =========================
+  // 🏷 LABEL MOON (ADAPTIVE)
+  // =========================
+
+  if(alpha > 0.15){
+
+    ctx.font = "12px Arial";
+
+    // shadow hanya malam/senja
+    if(sun.alt <= 0){
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 3;
+    } else {
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+    }
+
+    let labelColor;
+
+    if(sun.alt > 0){
+      labelColor = `rgba(0,0,0,${alpha})`; // siang
+    } 
+    else if(sun.alt > -6){
+      labelColor = `rgba(180,180,180,${alpha})`; // senja
+    } 
+    else {
+      labelColor = `rgba(255,255,255,${alpha})`; // malam
+    }
+
+    ctx.fillStyle = labelColor;
+    ctx.fillText("Bulan", pos.x + 12, pos.y);
+
+    // reset shadow (WAJIB)
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
+  }
+}
+
+// === GAMBAR HORIZON ===
+function drawHorizon(){
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.strokeStyle = "lime";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// === GAMBAR BINTANG ===
+function drawStars(){
+
+  let sun = hitungMatahari(currentLat, currentLon);
+  let vf = getVisibilityFactor(sun.alt);
+
+  if(vf <= 0) return;
+
+  const now = new Date();
+
+  stars.forEach(star => {
+
+    // 🔥 HITUNG POSISI DULU
+    const coord = raDecToAltAz(
+      star.ra,
+      star.dec,
+      currentLat,
+      currentLon,
+      now
+    );
+
+    if(!coord) return;
+
+    const pos = altAzToXY(coord.alt, coord.azi);
+    if(!pos) return;
+
+    // =========================
+    // 🌟 BRIGHTNESS SYSTEM BARU
+    // =========================
+
+    const size = star.real ? 2.5 : 1;
+    const baseBrightness = star.real ? 1 : 0.3;
+
+    // 🌫 fade berdasarkan visibility + atmosfer
+    let alpha = vf * baseBrightness;
+
+    // 🌙 tambahan fade siang (biar lebih natural)
+    if(sun.alt > 0){
+      alpha *= 0;          // siang → hilang total
+    } else if(sun.alt > -6){
+      alpha *= 0.25;       // senja → redup
+    }
+
+    // =========================
+    // ⭐ DRAW STAR POINT
+    // =========================
+
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+
+    // =========================
+    // 🏷 LABEL SYSTEM (BARU)
+    // =========================
+
+    if(star.real && star.mag < 1.0 && alpha > 0.15){
+
+      let labelColor;
+
+      if(sun.alt > 0){
+        labelColor = `rgba(0,0,0,${alpha})`; // siang
+      } 
+      else if(sun.alt > -6){
+        labelColor = `rgba(200,200,200,${alpha})`; // senja
+      } 
+      else {
+        labelColor = `rgba(255,255,255,${alpha})`; // malam
+      }
+
+      ctx.font = "11px Arial";
+
+      // shadow hanya saat malam / senja (biar siang tidak blur)
+      if(sun.alt <= 0){
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 3;
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = "transparent";
+      }
+
+      ctx.fillStyle = labelColor;
+      ctx.fillText(star.name, pos.x + 5, pos.y - 5);
+
+      // reset shadow (WAJIB)
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+    }
+
+  });
+}
+
+// === GAMBAR MATAHARI ===
+function drawSun(){
+
+  let sun = hitungMatahari(currentLat, currentLon);
+  if(!sun || sun.alt < -90) return;
+
+  let pos = altAzToXY(sun.alt, sun.azi);
+  if(!pos) return;
+
+  // =========================
+  // 🌞 BRIGHTNESS SYSTEM SUN
+  // =========================
+
+  // Sun tidak pernah hilang, tapi bisa fade saat horizon distortion
+  let alpha = 1;
+
+  if(sun.alt < -5){
+    alpha = 0; // di bawah horizon → tidak tampil
+  }
+
+  // =========================
+  // ☀️ DRAW SUN CORE
+  // =========================
+
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+
+  // sedikit glow effect sederhana
+  ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+  ctx.fill();
+
+  // optional: halo ringan biar realistis
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 18, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.15})`;
+  ctx.fill();
+
+  // =========================
+  // 🏷 LABEL SUN (ADAPTIVE)
+  // =========================
+
+  if(alpha > 0){
+
+    ctx.font = "12px Arial";
+
+    // shadow selalu aktif untuk kontras di siang
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = 3;
+
+    let labelColor;
+
+    // ☀️ siang → hitam (biar kontras langit terang)
+    if(sun.alt > 0){
+      labelColor = `rgba(0,0,0,1)`;
+    }
+    // 🌇 senja → abu
+    else if(sun.alt > -6){
+      labelColor = `rgba(80,80,80,1)`;
+    }
+    // 🌙 malam (sun below horizon tipis)
+    else {
+      labelColor = `rgba(255,255,255,1)`;
+    }
+
+    ctx.fillStyle = labelColor;
+    ctx.fillText("Matahari", pos.x + 15, pos.y);
+
+    // reset shadow (WAJIB)
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
+  }
+}
+
+// === GAMBAR GRID ===
+function drawGrid(){
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height/2);
+  ctx.lineTo(canvas.width, canvas.height/2);
+  ctx.stroke();
+}
+
 // === AUTO SPEED ===
 function getAutoSpeed(){
   const now = new Date();
@@ -179,6 +782,31 @@ function getAutoSpeed(){
   } else {
     return 3600;     // super cepat (dekat maghrib)
   }
+}
+
+// === LOOP PLANETARIUM ===
+function loopPlanetarium(){
+
+  if(!running) return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(currentLat && currentLon){
+    hilalDataFull = hitungHilalCore(currentLat, currentLon);
+  }
+
+  drawSkyBackground();
+  drawGrid();
+  drawHorizon();
+
+  drawStars();
+  drawSun();
+
+  if(hilalDataFull){
+    drawMoon();
+  }
+
+  loopId = requestAnimationFrame(loopPlanetarium);
 }
 
 // === JAM ===
@@ -234,7 +862,6 @@ function getLocation(){
         setTimeout(()=>{
           updateHijriRealTime(lat, lon); // baru hijri
         }, 500);
-        startCam();
         startMaghribWatcher(lat, lon);
         
         // === INTERVAL FINAL ===
@@ -291,7 +918,6 @@ function getLocation(){
 
         updateHijriRealTime(lat, lon);
         hitungHilal(lat, lon);
-        startCam();
         startMaghribWatcher(lat, lon);
 
         // 🔁 Update hilal tiap 10 detik
@@ -1230,174 +1856,119 @@ function startMaghribWatcher(lat, lon){
   loop(); // start
 }
 
+// === KALIBRASI HORIZOM ===
+function calibrateHorizon(){
+  altitudeOffset = hilalData.alt + pitch;
+  alert("Kalibrasi horizon berhasil");
+}
+
 // === AR ===
 function updateAR(alpha, beta, gamma){
-    const marker = document.getElementById('marker');
-    const wrapper = document.querySelector('.camera-wrapper');
-    const horizon = document.getElementById('horizonLine');
-    const label = document.getElementById("horizonLabel");
-    const azEl = document.getElementById('arAzimuth');
-    const altEl = document.getElementById('arAltitude');
-    if(!marker || !wrapper) return;
 
-    const width = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
+  const marker  = document.getElementById('marker');
+  const wrapper = document.querySelector('.camera-wrapper');
+  const horizon = document.getElementById('horizonLine');
+  const label   = document.getElementById("horizonLabel");
+  const azEl    = document.getElementById('arAzimuth');
+  const altEl   = document.getElementById('arAltitude');
 
-    if(smoothX === 0 && smoothY === 0){
-        smoothX = width/2;
-        smoothY = height/2;
-    }
+  if(!marker || !wrapper) return;
 
-    // === HEADING SMOOTH ===
-    let rawHeading = window.lastAlpha ?? alpha ?? 0;
-    
-    // === ANTI LONCAT 360° ===
-    smoothHeading += ((rawHeading - smoothHeading + 540) % 360 - 180) * kalmanFactor;
-  
-    let heading = (smoothHeading + headingOffset + declinationGlobal + 360) % 360;
-  
-    // === PITCH & ROLL SMOOTH ===
-    smoothPitch += ((beta || 0) - smoothPitch) * 0.1;
-    smoothRoll  += ((gamma || 0) - smoothRoll) * 0.1;
-    
-    const pitch = smoothPitch;
-    // === HORIZON LINE ===
+  const width  = wrapper.clientWidth;
+  const height = wrapper.clientHeight;
+
+  const FOV = 60;
+
+  if(smoothX === 0 && smoothY === 0){
+    smoothX = width/2;
+    smoothY = height/2;
+  }
+
+  // === HEADING ===
+  let rawHeading = window.lastAlpha ?? alpha ?? 0;
+  smoothHeading += ((rawHeading - smoothHeading + 540) % 360 - 180) * kalmanFactor;
+  let heading = (smoothHeading + headingOffset + declinationGlobal + 360) % 360;
+
+  // === PITCH & ROLL ===
+  smoothPitch += ((beta || 0) - smoothPitch) * 0.1;
+  smoothRoll  += ((gamma || 0) - smoothRoll) * 0.1;
+
+  const pitch = smoothPitch;
+  const roll  = smoothRoll;
+
+  // =========================
+  // 🌄 HORIZON
+  // =========================
+  if(horizon){
+
     const isPortrait = window.innerHeight > window.innerWidth;
-    if(horizon){
-      const fov = 60;
-      
-    let deltaAltHorizon;
-      if(isPortrait){
-        deltaAltHorizon = -(pitch - 45);
-      } else {
-        deltaAltHorizon = -pitch;
-      }
-      
-      let y = height/2 - (deltaAltHorizon / fov) * height;
 
-    // 🔥 Clamp (biar tidak hilang)
-    if(y < 0){
-      y = 5;
-    }
-    else if(y > height){
-      y = height - 5;
+    let deltaAlt = isPortrait ? -(pitch - 45) : -pitch;
+
+    let y = height/2 - (deltaAlt / FOV) * height;
+
+    if(y < 0) y = 5;
+    if(y > height) y = height - 5;
+
+    horizon.style.top = y + "px";
+
+    if(label){
+      label.style.top = y + "px";
+
+      if(y <= 5) label.innerText = "⬆ Horizon di atas";
+      else if(y >= height - 5) label.innerText = "⬇ Horizon di bawah";
+      else label.innerText = "Horizon";
     }
 
-   // === APPLY POSISI ===
-   horizon.style.top = y + "px";
-      
-   if(label){
-     label.style.top = y + "px";
-   }
+    horizon.style.opacity = (y <= 5 || y >= height - 5) ? 0.5 : 1;
 
-   // === OPACITY (luar view) ===
-   if(y <= 5 || y >= height - 5){
-     horizon.style.opacity = 0.5;
-   } else {
-     horizon.style.opacity = 1;
-   }
-
-   // === LABEL INFO ===
-   if(label){
-     if(y <= 5){
-       label.innerText = "⬆ Horizon di atas";
-     }
-    else if(y >= height - 5){
-      label.innerText = "⬇ Horizon di bawah";
-    }
-    else{
-      label.innerText = "Horizon";
-    }
-   }
-
-    // === WARNA SIANG / MALAM ===
     const sun = hitungMatahari(currentLat, currentLon);
-      horizon.style.background = sun.alt > 0 ? "orange" : "lime";
-    }
-    const roll  = smoothRoll;
+    horizon.style.background = sun.alt > 0 ? "orange" : "lime";
+  }
 
-    // === AZIMUTH (FIX BESAR) ===
-    let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
-    deltaAz = Math.max(-90, Math.min(90, deltaAz));
+  // =========================
+  // 🎯 MARKER
+  // =========================
+  let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
+  let deviceAlt = -pitch; // kunci utama
+  let deltaAlt = hilalData.alt - deviceAlt;
 
-    // === ALTITUDE (FIX) ===
-    let deviceAlt = pitch * 0.9;
-    let horizonOffset = 1.5;
-    let deltaAlt = hilalData.alt - deviceAlt - horizonOffset;
-  
-    // === BATAS ===
-    deltaAz  = Math.max(-60, Math.min(60, deltaAz));
-    deltaAlt = Math.max(-45, Math.min(45, deltaAlt));
+  deltaAz  = Math.max(-60, Math.min(60, deltaAz));
+  deltaAlt = Math.max(-45, Math.min(45, deltaAlt));
 
-    // === PROYEKSI REALISTIS ===
-    const fov = 60;
+  let targetX = width/2 + (deltaAz / FOV) * width + roll * 0.3;
+  let targetY = height/2 - (deltaAlt / FOV) * height - pitch * 0.2;
 
-    let targetX = width/2 + (deltaAz / fov) * width + roll*0.3;
-    let targetY = height/2 - (deltaAlt / fov) * height - pitch*0.2;
+  targetX = Math.max(30, Math.min(width-30, targetX));
+  targetY = Math.max(40, Math.min(height-40, targetY));
 
-    targetX = Math.max(30, Math.min(width-30, targetX));
-    targetY = Math.max(40, Math.min(height-40, targetY));
+  smoothX += (targetX - smoothX) * 0.08;
+  smoothY += (targetY - smoothY) * 0.08;
 
-    // ==== SMOOTHING (TETAP DIPAKAI) ===
-    smoothX += (targetX - smoothX) * 0.08;
-    smoothY += (targetY - smoothY) * 0.08;
+  marker.style.left = smoothX + "px";
+  marker.style.top  = smoothY + "px";
 
-    marker.style.left = smoothX + "px";
-    marker.style.top  = smoothY + "px";
+  // =========================
+  // 🌌 GRID (INI YANG BARU)
+  // =========================
+  drawSkyGrid(pitch, heading);
 
-    // === ERROR & FEEDBACK ===
-   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
+  // =========================
+  // 🎨 FEEDBACK
+  // =========================
+  const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-   // === VISIBILITY SCORE ===
-   let visibilityScore = 100 - error * 2;
-   visibilityScore = Math.max(0, Math.min(100, visibilityScore));
+  if(error < 5){
+    marker.style.color = "lime";
+  } else if(error < 15){
+    marker.style.color = "yellow";
+  } else {
+    marker.style.color = "red";
+  }
 
-   // efek visual (biar makin realistis)
-   marker.style.opacity = 0.5 + (visibilityScore / 200);
-
-   // === WARNA MARKER ===
-   if(error < 5){
-     marker.style.color = "lime";
-     if(!beepCooldown){
-         playBeep(1200, 200);
-         navigator.vibrate && navigator.vibrate(150);
-         beepCooldown = true;
-         setTimeout(()=> beepCooldown = false, 1000);
-     }
-   } else if(error < 15){
-     marker.style.color = "yellow";
-   } else {
-     marker.style.color = "red";
-   }
-    
-   // === INFO UI ===
-    if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
-    if(altEl) altEl.innerText = `Tinggi: ${hilalData.alt.toFixed(2)}°`;
-
-    // === PATH HILAL ===
-    if(Date.now() - lastPathUpdate > 2000){
-        lastPathUpdate = Date.now();
-        const path = generateHilalPath(currentLat, currentLon);
-
-        path.forEach(p=>{
-            const dot = document.createElement("div");
-            dot.className = "hilal-path-dot";
-
-            let dx = ((p.azi - heading + 540) % 360) - 180;
-            let dy = p.alt - pitch;
-
-            const fov = 60;
-
-            dot.style.left = (width/2 + (dx/fov)*width) + "px";
-            dot.style.top  = (height/2 - (dy/fov)*height) + "px";
-
-            wrapper.appendChild(dot);
-            setTimeout(()=>dot.remove(),1500);
-        });
-      
-      // 🌙 GAMBAR HILAL REAL-TIME
-      drawMoonRealistic(hilalDataFull.illumination);
-    }
+  if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
+  if(altEl) altEl.innerText = `Tinggi: ${hilalData.alt.toFixed(2)}°`;
+  drawMoonRealistic(hilalDataFull.illumination);
 }
 
 // === KALIBRASI KOMPAS ===
@@ -1432,45 +2003,6 @@ function playBeep(freq=800, duration=100){
   gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
   osc.start();
   osc.stop(audioCtx.currentTime + duration/1000);
-}
-
-// === KAMERA ===
-function startCam(){
-  const video = document.getElementById('cam');
-  const status = document.getElementById('arStatus');
-
-  if(!video) return;
-
-  // tampilkan status loading
-  if(status){
-    status.innerText = "Mengaktifkan kamera...";
-  }
-
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment' },
-    audio: false
-  })
-  .then(stream => {
-    video.srcObject = stream;
-
-    video.onloadedmetadata = () => {
-      video.play();
-
-      // 🔥 update status saat kamera siap
-      if(status){
-        status.innerText = "📷 Kamera aktif";
-      }
-    };
-  })
-  .catch(err => {
-    console.error(err);
-
-    if(status){
-      status.innerText = "❌ Kamera gagal";
-    }
-
-    alert("Izin kamera diperlukan");
-  });
 }
 
 // === NOTIF ===
