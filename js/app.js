@@ -275,11 +275,20 @@ function getLabelColor(alpha = 1) {
 }
 
 // === TULIS LABEL ===
-function drawLabel(text, x, y){
+function drawLabel(text, x, y, color="white"){
+
   ctx.font = "12px Arial";
-  ctx.fillStyle = "white";
+
+  // 🔥 KUNCI CENTER ATAS
   ctx.textAlign = "center";
-  ctx.fillText(text, x, y - 8);
+  ctx.textBaseline = "bottom";
+
+  ctx.fillStyle = color;
+
+  // jarak dari objek
+  const offset = 10;
+
+  ctx.fillText(text, x, y - offset);
 }
 
 // === LANGIT KE LAYAR ===
@@ -542,7 +551,7 @@ function drawMoon(){
     }
 
     ctx.fillStyle = labelColor;
-    ctx.fillText("Bulan", pos.x + 12, pos.y);
+    drawLabel("Bulan", pos.x, pos.y, labelColor);
 
     // reset shadow (WAJIB)
     ctx.shadowBlur = 0;
@@ -642,7 +651,7 @@ function drawStars(){
       }
 
       ctx.fillStyle = labelColor;
-      ctx.fillText(star.name, pos.x + 5, pos.y - 5);
+      drawLabel(star.name, pos.x, pos.y, labelColor);
 
       // reset shadow (WAJIB)
       ctx.shadowBlur = 0;
@@ -717,7 +726,7 @@ function drawSun(){
     }
 
     ctx.fillStyle = labelColor;
-    ctx.fillText("Matahari", pos.x + 15, pos.y);
+    drawLabel("Matahari", pos.x, pos.y, labelColor);
 
     // reset shadow (WAJIB)
     ctx.shadowBlur = 0;
