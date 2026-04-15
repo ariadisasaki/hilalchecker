@@ -86,6 +86,9 @@ const STAR_CATALOG = [
   ["Mimosa", 191.930, -59.688, 1.25]
 ];
 
+// 🌌 GALAXY POINTS
+let galaxyPoints = [];
+
 // 🪐 DATA PLANET (SIMPLE APPROX)
 const PLANETS = [
   { name: "Merkurius", color: "gray" },
@@ -307,7 +310,8 @@ window.onload = () => {
   preloadHijri();
   startClock();
   initPlanetarium();
-  updateHijriRealTime(-8.6522, 116.5293); // fallback Lombok
+  generateGalaxy();
+  updateHijriRealTime(-8.6522, 116.5293);
   getLocation();
   initSensor();
   
@@ -343,6 +347,25 @@ window.onload = () => {
     }
   }, { once:true });
 };
+
+// === GENERATE GALAXY ===
+function generateGalaxy(){
+
+  galaxyPoints = [];
+
+  for(let i=0; i<2000; i++){
+
+    // panjang galaksi
+    let ra = Math.random() * 360;
+
+    // band sempit (galactic plane)
+    let dec = (Math.random() - 0.5) * 30;
+
+    galaxyPoints.push({ ra, dec });
+  }
+
+  console.log("🌌 Galaxy generated:", galaxyPoints.length);
+}
 
 // === DETEKSI SIANG SENJA MALAM ===
 function isDayTime() {
@@ -857,6 +880,36 @@ function drawPlanets(){
   });
 }
 
+// === GAMBAR GALAKSI ===
+function drawGalaxy(){
+
+  const now = new Date();
+
+  galaxyPoints.forEach(star => {
+
+    const coord = raDecToAltAz(
+      star.ra,
+      star.dec,
+      currentLat,
+      currentLon,
+      now
+    );
+
+    if(!coord || coord.alt < 0) return;
+
+    const pos = altAzToXY(coord.alt, coord.azi);
+    if(!pos) return;
+
+    // 🌌 efek kabut
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fill();
+
+  });
+
+}
+
 // === GAMBAR MATAHARI ===
 function drawSun(){
 
@@ -982,6 +1035,7 @@ function loopPlanetarium(){
   drawGrid();
   drawHorizon();
   drawStars();
+  drawGalaxy();
   drawPlanets();
   drawSun();
   drawMoon();
