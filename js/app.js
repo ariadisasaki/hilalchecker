@@ -34,6 +34,19 @@ let hilalDataFull = {
   illumination: 0
 };
 
+// === ORBIT PLANET ===
+function deg2rad(d){ return d * Math.PI / 180; }
+function rad2deg(r){ return r * 180 / Math.PI; }
+
+function normalize(deg){
+  return (deg % 360 + 360) % 360;
+}
+
+// === HITUNG JD ===
+function getJulianDay(date){
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
 // === CACHE REALTIME ===
 let sunCache = {
   alt: 0,
@@ -72,6 +85,64 @@ const STAR_CATALOG = [
   ["Deneb", 310.358, 45.280, 1.25],
   ["Mimosa", 191.930, -59.688, 1.25]
 ];
+
+// 🪐 DATA PLANET (SIMPLE APPROX)
+const PLANETS = [
+  { name: "Merkurius", color: "gray" },
+  { name: "Venus", color: "white" },
+  { name: "Mars", color: "red" },
+  { name: "Jupiter", color: "orange" },
+  { name: "Saturnus", color: "gold" }
+];
+
+const PLANET_ELEMENTS = {
+
+  Merkurius: {
+    N: [48.3313, 3.24587E-5],
+    i: [7.0047, 5.00E-8],
+    w: [29.1241, 1.01444E-5],
+    a: 0.387098,
+    e: [0.205635, 5.59E-10],
+    M: [168.6562, 4.0923344368]
+  },
+
+  Venus: {
+    N: [76.6799, 2.46590E-5],
+    i: [3.3946, 2.75E-8],
+    w: [54.8910, 1.38374E-5],
+    a: 0.723330,
+    e: [0.006773, -1.302E-9],
+    M: [48.0052, 1.6021302244]
+  },
+
+  Mars: {
+    N: [49.5574, 2.11081E-5],
+    i: [1.8497, -1.78E-8],
+    w: [286.5016, 2.92961E-5],
+    a: 1.523688,
+    e: [0.093405, 2.516E-9],
+    M: [18.6021, 0.5240207766]
+  },
+
+  Jupiter: {
+    N: [100.4542, 2.76854E-5],
+    i: [1.3030, -1.557E-7],
+    w: [273.8777, 1.64505E-5],
+    a: 5.20256,
+    e: [0.048498, 4.469E-9],
+    M: [19.8950, 0.0830853001]
+  },
+
+  Saturnus: {
+    N: [113.6634, 2.38980E-5],
+    i: [2.4886, -1.081E-7],
+    w: [339.3939, 2.97661E-5],
+    a: 9.55475,
+    e: [0.055546, -9.499E-9],
+    M: [316.9670, 0.0334442282]
+  }
+
+};
 
 // === GLOBAL STATE HILAL ENGINE ===
 let ctx, canvas; // canvas context global
@@ -447,6 +518,63 @@ function raDecToAltAz(ra, dec, lat, lon, date){
   return { alt, azi };
 }
 
+// === POSISI PLANET ===
+function getPlanetPosition(name, date){
+
+  const d = getJulianDay(date) - 2451545.0;
+  const el = PLANET_ELEMENTS[name];
+
+  if(!el) return null;
+
+  const N = normalize(el.N[0] + el.N[1]*d);
+  const i = el.i[0] + el.i[1]*d;
+  const w = normalize(el.w[0] + el.w[1]*d);
+  const a = el.a;
+  const e = el.e[0] + el.e[1]*d;
+  const M = normalize(el.M[0] + el.M[1]*d);
+
+  let E = M + rad2deg(e * Math.sin(deg2rad(M)) * (1 + e * Math.cos(deg2rad(M))));
+
+  const xv = a * (Math.cos(deg2rad(E)) - e);
+  const yv = a * (Math.sqrt(1 - e*e) * Math.sin(deg2rad(E)));
+
+  const v = rad2deg(Math.atan2(yv, xv));
+  const r = Math.sqrt(xv*xv + yv*yv);
+
+  const xh = r * (
+    Math.cos(deg2rad(N)) * Math.cos(deg2rad(v+w)) -
+    Math.sin(deg2rad(N)) * Math.sin(deg2rad(v+w)) * Math.cos(deg2rad(i))
+  );
+
+  const yh = r * (
+    Math.sin(deg2rad(N)) * Math.cos(deg2rad(v+w)) +
+    Math.cos(deg2rad(N)) * Math.sin(deg2rad(v+w)) * Math.cos(deg2rad(i))
+  );
+
+  const zh = r * (
+    Math.sin(deg2rad(v+w)) * Math.sin(deg2rad(i))
+  );
+
+  const Ls = normalize(280.460 + 0.9856474*d);
+  const xs = Math.cos(deg2rad(Ls));
+  const ys = Math.sin(deg2rad(Ls));
+
+  const xg = xh - xs;
+  const yg = yh - ys;
+  const zg = zh;
+
+  const ecl = 23.4393 - 3.563E-7*d;
+
+  const xe = xg;
+  const ye = yg * Math.cos(deg2rad(ecl)) - zg * Math.sin(deg2rad(ecl));
+  const ze = yg * Math.sin(deg2rad(ecl)) + zg * Math.cos(deg2rad(ecl));
+
+  const ra = normalize(rad2deg(Math.atan2(ye, xe)));
+  const dec = rad2deg(Math.atan2(ze, Math.sqrt(xe*xe + ye*ye)));
+
+  return { ra, dec };
+}
+
 // === ALTAZ TO XY ===
 function altAzToXY(alt, azi){
 
@@ -672,6 +800,63 @@ function drawStars(){
   });
 }
 
+// === GAMBAR PLANET ===
+function drawPlanets(){
+
+  const now = new Date();
+
+  PLANETS.forEach(planet => {
+
+    // 🔭 ambil posisi planet
+    const eq = getPlanetPosition(planet.name, now);
+
+    // 🌍 konversi ke AltAz
+    const coord = raDecToAltAz(
+      eq.ra,
+      eq.dec,
+      currentLat,
+      currentLon,
+      now
+    );
+
+    if(!coord) return;
+
+    const pos = altAzToXY(coord.alt, coord.azi);
+    if(!pos) return;
+
+    // =========================
+    // 🪐 DRAW PLANET
+    // =========================
+
+    ctx.beginPath();
+    const sizeMap = {
+      "Merkurius": 3,
+      "Venus": 5,
+      "Mars": 4,
+      "Jupiter": 6,
+      "Saturnus": 5
+    };
+    ctx.arc(pos.x, pos.y, sizeMap[planet.name], 0, Math.PI * 2);
+    ctx.fillStyle = planet.color;
+    ctx.fill();
+
+    // glow ringan
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = planet.color + "33";
+    ctx.fill();
+
+    // =========================
+    // 🏷 LABEL (CENTER ATAS)
+    // =========================
+
+    const labelColor = getLabelColor(0.9);
+
+    drawLabel(planet.name, pos.x, pos.y, labelColor);
+
+  });
+}
+
 // === GAMBAR MATAHARI ===
 function drawSun(){
 
@@ -797,6 +982,7 @@ function loopPlanetarium(){
   drawGrid();
   drawHorizon();
   drawStars();
+  drawPlanets();
   drawSun();
   drawMoon();
 
