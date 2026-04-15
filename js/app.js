@@ -24,6 +24,8 @@ let altitudeOffset = 0;
 let arSpeed = 1;
 let running = true;
 let loopId = null;
+let lastCheckDate = null;
+let sudahCekHariIni = false;
 let hilalDataFull = {
   alt: 0,
   azi: 0,
@@ -45,12 +47,6 @@ let moonCache = {
 
 // === GLOBAL ===
 let modeHijri = true; // default: Hisab
-
-// Ambil mode dari localStorage jika ada
-const savedMode = localStorage.getItem("modeHijri");
-if (savedMode !== null) {
-  modeHijri = savedMode === "true";
-}
 
 let stars = [];
 
@@ -124,46 +120,40 @@ function getVisibilityFactor(sunAlt){
 }
 
 // === INISIALISASI TOGGLE HIJRI ===
-function initHijriToggle() {
+function initHijriToggle(){
+
   const checkbox = document.getElementById("hijriModeToggle");
   const label = document.getElementById("hijriModeLabel");
-  const hijriEl = document.getElementById("hijri");
-  if (!checkbox || !label || !hijriEl) return;
 
-  // set status awal
+  if(!checkbox || !label){
+    console.log("❌ Toggle tidak ditemukan");
+    return;
+  }
+
+  // ambil mode dari storage (true = hisab, false = hybrid)
+  modeHijri = JSON.parse(localStorage.getItem("modeHijri")) ?? true;
+
+  // set posisi toggle
   checkbox.checked = modeHijri;
-  label.innerText = modeHijri ? "Mode Hisab" : "Mode Rukyat";
 
-  // event listener toggle
-  checkbox.addEventListener("change", async () => {
-    modeHijri = checkbox.checked;
-    label.innerText = modeHijri ? "Mode Hisab" : "Mode Rukyat";
-    localStorage.setItem("modeHijri", modeHijri);
+  // set label
+  label.innerText = modeHijri ? "Mode Hisab" : "Mode Hybrid";
 
-    if (!modeHijri) { // Rukyat
-      hijriEl.innerText = "Menunggu rukyat..";
+  // event toggle
+  checkbox.addEventListener("change", ()=>{
 
-      // tunggu sebentar supaya repaint UI terlihat
-      await new Promise(r => setTimeout(r, 100));
+  modeHijri = checkbox.checked;
 
-      // ambil data rukyat (async)
-      const result = getHijriRukyat(currentLat, currentLon);
+  localStorage.setItem("modeHijri", JSON.stringify(modeHijri));
 
-      tanggalHijriGlobal = result.d;
-      hijriMonthIndex = result.m - 1;
+  label.innerText = modeHijri ? "Mode Hisab" : "Mode Hybrid";
 
-      const bulan = [
-        "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
-        "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
-        "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
-      ];
+  // 🔥 reset agar bisa re-evaluate
+  sudahCekHariIni = false;
 
-      hijriEl.innerText = `${result.d} ${bulan[hijriMonthIndex]} ${result.y} H`;
-    } else {
-      // Hisab: langsung refresh
-      updateHijriRealTime(currentLat, currentLon);
-    }
-  });
+  updateHijriRealTime(currentLat, currentLon);
+
+});
 }
 
 // === INISIALISASI SETELAH DOM READY ===
@@ -175,11 +165,13 @@ if (document.readyState === "loading") {
 
 // === UPDATE HIJRI REALTIME ===
 async function updateHijriRealTime(lat, lon) {
+
+  resetHybridDaily();
+
   if(!tanggalHijriGlobal || isNaN(tanggalHijriGlobal)){
-    console.warn("Hijri invalid, reset ke default...");
     tanggalHijriGlobal = 1;
   }
-  
+
   if (lat === 0 || lon === 0 || isNaN(lat) || isNaN(lon)) {
     console.warn("Lokasi belum siap untuk Hijri");
     return;
@@ -188,9 +180,35 @@ async function updateHijriRealTime(lat, lon) {
   let result;
 
   if (modeHijri) {
-    result = getHijriAuto(lat, lon); // Hisab
+    // ✅ HISAB
+    result = getHijriAuto(lat, lon);
+
   } else {
-    result = getHijriRukyat(lat, lon);
+    // ✅ HYBRID
+    if(isMaghribTime(lat, lon) && !sudahCekHariIni){
+
+      result = getHijriHybrid(lat, lon);
+
+      localStorage.setItem("hybridCache", JSON.stringify(result));
+      sudahCekHariIni = true;
+
+    } else {
+
+      const cache = localStorage.getItem("hybridCache");
+
+      if(cache){
+        result = JSON.parse(cache);
+      } else {
+        console.warn("Hybrid belum punya cache");
+        return;
+      }
+    }
+  }
+
+  // 🔥 WAJIB: di luar if-else
+  if(!result){
+    console.warn("Result Hijri kosong");
+    return;
   }
 
   const { d, m, y } = result;
@@ -206,6 +224,8 @@ async function updateHijriRealTime(lat, lon) {
 
   document.getElementById('hijri').innerText =
     `${d} ${bulan[hijriMonthIndex]} ${y} H`;
+
+  console.log("✅ Hijri updated:", d, m, y);
 }
   
 // === INIT ===
@@ -840,9 +860,7 @@ function getLocation(){
         
         // 🔁 Backup Sync
         setInterval(()=>{
-          if(modeHijri){
-            updateHijriRealTime(currentLat, currentLon);
-          }
+          updateHijriRealTime(currentLat, currentLon);
         }, 120000);
       
         // 🔁 UI Realtime
@@ -1796,12 +1814,11 @@ function startMaghribWatcher(lat, lon){
       localStorage.setItem("hilalReloadDate", todayKey);
 
       updateHijriRealTime(lat, lon);
-      updateHijriRealTime(lat, lon);
 
       showNotif("Maghrib", "Tanggal Hijriah diperbarui 🌙");
 
-      if(typeof getHijriRukyat === "function"){
-        getHijriRukyat(lat, lon);
+      if(typeof getHijriHybrid === "function"){
+        getHijriHybrid(lat, lon);
       }
     }
 
@@ -2226,6 +2243,95 @@ function getHijriAuto(lat, lon){
   return { d, m, y };
 }
 
+// === DAPATKAN HYBRID ===
+function getHijriHybrid(lat, lon){
+
+  const now = new Date();
+
+  resetHybridDaily();
+
+  const hisab = getHijriAuto(lat, lon);
+
+  const maghribData = hitungMaghrib(lat, lon);
+  const maghrib = maghribData?.decimal ?? 18;
+
+  const jamNow = now.getHours() + now.getMinutes()/60;
+
+  // ✅ SEBELUM MAGHRIB → PURE HISAB
+  if(jamNow < maghrib){
+    return hisab;
+  }
+
+  // ✅ CEK CACHE (BIAR TIDAK HITUNG ULANG)
+  const todayKey = now.toDateString();
+  const lastCheck = localStorage.getItem("hybridLastCheck");
+
+  if(lastCheck === todayKey){
+    const cache = localStorage.getItem("hybridCache");
+    if(cache) return JSON.parse(cache);
+  }
+
+  let d = hisab.d;
+  let m = hisab.m;
+  let y = hisab.y;
+
+  // 🔥 LOGIKA KRUSIAL: TANGGAL 29
+  if(hisab.d === 29){
+
+    const data = hitungHilalCore(lat, lon);
+    const { alt, elo } = data;
+
+    const imkan = (alt >= 3 && elo >= 6.4);
+
+    if(imkan){
+      d = 1;
+      m++;
+      if(m > 12){
+        m = 1;
+        y++;
+      }
+    } else {
+      d = 30;
+    }
+  }
+
+  const result = { d, m, y };
+
+  // 💾 SIMPAN CACHE
+  localStorage.setItem("hybridCache", JSON.stringify(result));
+  localStorage.setItem("hybridLastCheck", todayKey);
+
+  return result;
+}
+
+// === RESET HYBRID ===
+function resetHybridDaily(){
+
+  const today = new Date().toDateString();
+  const last = localStorage.getItem("hybridLastCheck");
+
+  if(last !== today){
+    sudahCekHariIni = false; // 🔥 reset trigger
+    localStorage.setItem("hybridLastCheck", today);
+  }
+
+}
+
+// === WAKTU MAGHRIB ===
+function isMaghribTime(lat, lon){
+
+  const now = new Date();
+
+  const maghribData = hitungMaghrib(lat, lon);
+  if(!maghribData) return false;
+
+  const jamNow = now.getHours() + now.getMinutes()/60;
+
+  const tolerance = 0.05; // ~3 menit
+
+  return jamNow >= (maghribData.decimal - tolerance);
+}
+
 // === TOGLLE SET ===
 function setMode(mode){
   modeHijri = mode;
@@ -2233,74 +2339,13 @@ function setMode(mode){
   location.reload();
 }
 
-// === DAPATKAN HIJRI RUKYAT ===
-function getHijriRukyat(lat, lon){
-
-  const now = new Date();
-
-  let data = JSON.parse(localStorage.getItem("hijriRukyatData"));
-
-  // === INIT ===
-  if(!data){
-
-  const awal = getHijriAuto(lat, lon);
-
-  const now = new Date();
-  const todayStr = now.toDateString();
-
-  const maghribData = hitungMaghrib(lat, lon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
-
-  const jam = now.getHours() + now.getMinutes()/60;
-
-  data = {
-    d: awal.d,
-    m: awal.m,
-    y: awal.y,
-
-    // 🔥 KUNCI FIX DI SINI
-    lastMaghribUpdate: (jam >= maghrib) ? todayStr : null
-  };
-
-  localStorage.setItem("hijriRukyatData", JSON.stringify(data));
-    return data;
-  }
-
-  const todayStr = now.toDateString();
-
-  const maghribData = hitungMaghrib(lat, lon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
-
-  const jam = now.getHours() + now.getMinutes()/60;
-
-  if(jam >= maghrib && data.lastMaghribUpdate !== todayStr){
-
-    data.d++;
-
-    if(data.d > 30){
-      data.d = 1;
-      data.m++;
-      if(data.m > 12){
-        data.m = 1;
-        data.y++;
-      }
-    }
-
-    data.lastMaghribUpdate = todayStr;
-  }
-
-  localStorage.setItem("hijriRukyatData", JSON.stringify(data));
-
-  return data;
-}
-
 // === TOGGLE HIJRI HISAB ===
 function toggleHijriMode() {
   const checkbox = document.getElementById("hijriModeToggle");
   const label = document.getElementById("hijriModeLabel");
 
-  modeHijri = checkbox.checked; // true = hisab, false = rukyat
-  label.innerText = modeHijri ? "Mode Hisab" : "Mode Rukyat";
+  modeHijri = checkbox.checked; // true = hisab, false = hybrid
+  label.innerText = modeHijri ? "Mode Hisab" : "Mode Hybrid";
 
   console.log("Hijri mode:", modeHijri ? "Hisab" : "Rukyat");
 
