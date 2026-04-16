@@ -1,18 +1,54 @@
-const CACHE_NAME = "hilal-v1.1.5";
+const CACHE_NAME = "hilal-v1.1.6";
 
-self.addEventListener("install", e=>{
-  self.skipWaiting();
+const BASE_PATH = "/debug/";
+
+const ASSETS = [
+  BASE_PATH,
+  BASE_PATH + "index.html",
+  BASE_PATH + "manifest.json",
+  BASE_PATH + "assets/icon-192.png",
+  BASE_PATH + "assets/icon-512.png"
+];
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting(); // langsung aktif tanpa nunggu
 });
 
-self.addEventListener("activate", e=>{
-  e.waitUntil(
-    caches.keys().then(keys=>{
-      return Promise.all(keys.map(k=>caches.delete(k)));
-    })
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      // hapus cache lama
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) return caches.delete(key);
+        })
+      );
+
+      // PENTING: ambil kontrol semua halaman
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", e=>{
-  e.respondWith(fetch(e.request));
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // hanya handle request dalam scope kita
+  if (url.pathname.startsWith(BASE_PATH)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        return (
+          cached ||
+          fetch(event.request).then((response) => {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, copy);
+            });
+            return response;
+          })
+        );
+      })
+    );
+  }
 });
