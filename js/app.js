@@ -928,29 +928,51 @@ function drawGalaxy(){
 
   const now = new Date();
 
-  galaxyPoints.forEach(star => {
+  let sun = sunCache;
+  let vf = getVisibilityFactor(sun.alt);
+
+  if(vf <= 0) return;
+
+  galaxyPoints.forEach(point => {
 
     const coord = raDecToAltAz(
-      star.ra,
-      star.dec,
+      point.ra,
+      point.dec,
       currentLat,
       currentLon,
       now
     );
 
-    if(!coord || coord.alt < 0) return;
+    if(!coord) return;
 
     const pos = altAzToXY(coord.alt, coord.azi);
     if(!pos) return;
 
-    // 🌌 efek kabut
+    // =========================
+    // 🌌 VISIBILITY SYSTEM
+    // =========================
+
+    let alpha = vf * 0.05; // galaksi sangat redup
+
+    if(sun.alt > 0){
+      alpha = 0;        // ☀️ siang hilang total
+    } 
+    else if(sun.alt > -6){
+      alpha *= 0.2;     // 🌇 senja redup
+    }
+
+    if(alpha <= 0) return;
+
+    // =========================
+    // 🌌 DRAW
+    // =========================
+
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 1.2, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillStyle = `rgba(180,200,255,${alpha})`;
     ctx.fill();
 
   });
-
 }
 
 // === GAMBAR MATAHARI ===
