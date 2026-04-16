@@ -147,6 +147,13 @@ const PLANET_ELEMENTS = {
 
 };
 
+let clouds = [
+  { x: 120, y: 100, size: 80, speed: 0.2 },
+  { x: 400, y: 180, size: 110, speed: 0.15 },
+  { x: 700, y: 140, size: 90, speed: 0.1 }
+];
+
+
 // === GLOBAL STATE HILAL ENGINE ===
 let ctx, canvas; // canvas context global
 let sun = {
@@ -365,6 +372,24 @@ function generateGalaxy(){
   }
 
   console.log("🌌 Galaxy generated:", galaxyPoints.length);
+}
+
+// === GENERATE AWAN ===
+function generateClouds(){
+
+  clouds = [];
+
+  for(let i=0; i<25; i++){
+
+    clouds.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height * 0.4, // langit atas saja
+      size: 60 + Math.random() * 120,
+      speed: 0.1 + Math.random() * 0.3
+    });
+
+  }
+
 }
 
 // === DETEKSI SIANG SENJA MALAM ===
@@ -721,6 +746,41 @@ function drawMoon(){
   }
 }
 
+// === GAMBAR AWAN ===
+function drawClouds(){
+
+  const sun = sunCache;
+
+  // 🌙 malam → langsung stop
+  if(sun.alt <= 0) return;
+
+  // ☀️ hitung opacity berdasarkan ketinggian matahari
+  let alpha = Math.min(1, sun.alt / 30) * 0.6;
+
+  const t = Date.now() * 0.0001;
+
+  clouds.forEach(c => {
+
+    // 🌬️ gerakan awan pelan
+    c.x += Math.sin(t + c.y) * c.speed;
+
+    // 🔁 wrap layar
+    if(c.x > canvas.width + 120){
+      c.x = -120;
+    }
+
+    // ☁️ gambar awan (soft cloud pakai beberapa lingkaran)
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+
+    ctx.arc(c.x, c.y, c.size * 0.5, 0, Math.PI * 2);
+    ctx.arc(c.x + 25, c.y + 10, c.size * 0.4, 0, Math.PI * 2);
+    ctx.arc(c.x - 25, c.y + 10, c.size * 0.4, 0, Math.PI * 2);
+
+    ctx.fill();
+  });
+}
+
 // === GAMBAR HORIZON ===
 function drawHorizon(){
   ctx.beginPath();
@@ -823,7 +883,6 @@ function drawStars(){
   });
 }
 
-// === GAMBAR PLANET ===
 // === GAMBAR PLANET ===
 function drawPlanets(){
 
