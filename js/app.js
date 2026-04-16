@@ -216,12 +216,8 @@ const PLANET_ELEMENTS = {
 
 };
 
-let clouds = [
-  { x: 120, y: 100, size: 80, speed: 0.2 },
-  { x: 400, y: 180, size: 110, speed: 0.15 },
-  { x: 700, y: 140, size: 90, speed: 0.1 }
-];
-
+// === GLOBAL AWAN ===
+let clouds = [];
 
 // === GLOBAL STATE HILAL ENGINE ===
 let ctx, canvas; // canvas context global
@@ -241,6 +237,7 @@ let star_catalog = []; // array bintang
 // threshold waktu
 const TWILIGHT_ALT = -6;
 
+// === INIT PLANETARIUM ===
 function initPlanetarium(){
   canvas = document.getElementById("planetarium");
   ctx = canvas.getContext("2d");
@@ -450,16 +447,13 @@ function generateClouds(){
   clouds = [];
 
   for(let i=0; i<25; i++){
-
     clouds.push({
       x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height * 0.4, // langit atas saja
+      y: Math.random() * canvas.height * 0.4, // langit atas
       size: 60 + Math.random() * 120,
-      speed: 0.1 + Math.random() * 0.3
+      speed: 0.02 + Math.random() * 0.05 // 🔥 lebih pelan & smooth
     });
-
   }
-
 }
 
 // === DETEKSI SIANG SENJA MALAM ===
@@ -821,27 +815,32 @@ function drawClouds(){
 
   const sun = sunCache;
 
-  // 🌙 malam → langsung stop
+  // 🌙 malam → tidak tampil
   if(sun.alt <= 0) return;
 
-  // ☀️ hitung opacity berdasarkan ketinggian matahari
+  // ☀️ opacity berdasarkan ketinggian matahari
   let alpha = Math.min(1, sun.alt / 30) * 0.6;
 
-  const t = Date.now() * 0.0001;
+  // 🔥 waktu diperlambat
+  const t = Date.now() * 0.00003;
 
   clouds.forEach(c => {
 
-    // 🌬️ gerakan awan pelan
-    c.x += Math.sin(t + c.y) * c.speed;
+    // === GERAKAN UTAMA (drift pelan ke kanan)
+    c.x += c.speed;
 
-    // 🔁 wrap layar
+    // === EFEK ANGIN HALUS
+    c.x += Math.sin(t + c.y) * c.speed * 0.3;
+
+    // === WRAP LAYAR
     if(c.x > canvas.width + 120){
       c.x = -120;
+      c.y = Math.random() * canvas.height * 0.4; // biar variasi
     }
 
-    // ☁️ gambar awan (soft cloud pakai beberapa lingkaran)
+    // === GAMBAR CLOUD
     ctx.beginPath();
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`;
 
     ctx.arc(c.x, c.y, c.size * 0.5, 0, Math.PI * 2);
     ctx.arc(c.x + 25, c.y + 10, c.size * 0.4, 0, Math.PI * 2);
@@ -1114,67 +1113,73 @@ function drawSun(){
   if(!pos) return;
 
   // =========================
-  // 🌞 BRIGHTNESS SYSTEM SUN
+  // 🌞 BRIGHTNESS SYSTEM
   // =========================
-
-  // Sun tidak pernah hilang, tapi bisa fade saat horizon distortion
   let alpha = 1;
 
   if(sun.alt < -5){
-    alpha = 0; // di bawah horizon → tidak tampil
+    alpha = 0;
   }
 
+  if(alpha <= 0) return;
+
   // =========================
-  // ☀️ DRAW SUN CORE
+  // ☀️ CORE + GLOW (utama)
   // =========================
+  ctx.shadowColor = "rgba(255, 200, 100, 0.6)";
+  ctx.shadowBlur = 40;
 
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
-
-  // sedikit glow effect sederhana
   ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
   ctx.fill();
 
-  // optional: halo ringan biar realistis
+  // reset shadow (WAJIB)
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+
+  // =========================
+  // 🌥 GLOW BESAR (tembus awan)
+  // =========================
   ctx.beginPath();
-  ctx.arc(pos.x, pos.y, 18, 0, Math.PI * 2);
+  ctx.arc(pos.x, pos.y, 60, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255, 220, 120, ${alpha * 0.05})`;
+  ctx.fill();
+
+  // =========================
+  // 🌤 HALO KECIL
+  // =========================
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
   ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.15})`;
   ctx.fill();
 
   // =========================
-  // 🏷 LABEL SUN (ADAPTIVE)
+  // 🏷 LABEL
   // =========================
+  ctx.font = "12px Arial";
 
-  if(alpha > 0){
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 3;
 
-    ctx.font = "12px Arial";
+  let labelColor;
 
-    // shadow selalu aktif untuk kontras di siang
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
-    ctx.shadowBlur = 3;
-
-    let labelColor;
-
-    // ☀️ siang → hitam (biar kontras langit terang)
-    if(sun.alt > 0){
-      labelColor = `rgba(0,0,0,1)`;
-    }
-    // 🌇 senja → abu
-    else if(sun.alt > -6){
-      labelColor = `rgba(80,80,80,1)`;
-    }
-    // 🌙 malam (sun below horizon tipis)
-    else {
-      labelColor = `rgba(255,255,255,1)`;
-    }
-
-    ctx.fillStyle = labelColor;
-    drawLabel("Matahari", pos.x, pos.y, labelColor);
-
-    // reset shadow (WAJIB)
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = "transparent";
+  if(sun.alt > 0){
+    labelColor = `rgba(0,0,0,1)`; // siang
+  } 
+  else if(sun.alt > -6){
+    labelColor = `rgba(80,80,80,1)`; // senja
+  } 
+  else {
+    labelColor = `rgba(255,255,255,1)`; // malam
   }
+
+  ctx.fillStyle = labelColor;
+  drawLabel("Matahari", pos.x, pos.y, labelColor);
+
+  // reset shadow lagi
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
 }
 
 // === GAMBAR GRID ===
@@ -1229,11 +1234,11 @@ function loopPlanetarium(){
   drawGrid();
   drawHorizon();
   drawStars();
+  drawSun();
+  drawPlanets();
+  drawMoon();
   drawGalaxy();
   drawClouds();
-  drawPlanets();
-  drawSun();
-  drawMoon();
 
   loopId = requestAnimationFrame(loopPlanetarium);
 }
