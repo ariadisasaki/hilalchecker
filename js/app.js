@@ -2328,40 +2328,26 @@ function startMaghribWatcher(lat, lon){
     const todayKey = now.toDateString();
     const lastReload = localStorage.getItem("hilalReloadDate");
 
-    console.log("⏱ Cek Maghrib:", jamNow.toFixed(2), "|", maghrib.toFixed(2));
-
     if(jamNow >= maghrib && lastReload !== todayKey){
 
       console.log("🌙 MAGHRIB TRIGGERED");
 
       localStorage.setItem("hilalReloadDate", todayKey);
 
-      updateHijriRealTime(lat, lon);
+      requestHijriUpdate(); // ✅ SATU PINTU
 
       showNotif("Maghrib", "Tanggal Hijriah diperbarui 🌙");
-
-      if(typeof getHijriHybrid === "function"){
-        getHijriHybrid(lat, lon);
-      }
     }
 
-    // 🔥 INTERVAL DINAMIS
     const selisih = Math.abs(jamNow - maghrib);
 
-    let delay;
-
-    if(selisih > 2){
-      delay = 60000; // jauh → hemat
-    } else if(selisih > 1){
-      delay = 30000; // mendekat
-    } else {
-      delay = 10000; // dekat banget → cepat
-    }
+    let delay = selisih > 2 ? 60000 :
+                selisih > 1 ? 30000 : 10000;
 
     setTimeout(loop, delay);
   }
 
-  loop(); // start
+  loop();
 }
 
 // === KALIBRASI HORIZOM ===
