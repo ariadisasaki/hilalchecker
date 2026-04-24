@@ -27,6 +27,7 @@ let loopId = null;
 let lastCheckDate = null;
 let sudahCekHariIni = false;
 let hijriFinalState = null;
+let lastTriggeredDate = "";
 let hilalDataFull = {
   alt: 0,
   azi: 0,
@@ -1857,11 +1858,11 @@ function hitungHilal(lat, lon, customTime = null) {
     const el = document.getElementById(id);
     if (el) el.innerText = val;
   };
-  set("alt", alt.toFixed(2));
-  set("azi", azi.toFixed(2));
-  set("elo", elo.toFixed(2));
-  set("age", age.toFixed(1));
-  set("illum", illumination.toFixed(2) + " %");
+  set("alt", alt.toFixed(2) + "°");
+  set("azi", azi.toFixed(2) + "°");
+  set("elo", elo.toFixed(2) + "°");
+  set("age", age.toFixed(1) + " jam");
+  set("illum", illumination.toFixed(2) + "%");
 
   // === VISIBILITY ===
   const yallop = hitungVisibilitasYallop(alt, elo);
@@ -1933,7 +1934,65 @@ function hitungHilal(lat, lon, customTime = null) {
 
   return data;
 }
-  
+
+// === DATA MATAHARI ===
+function updateSunCard() {
+    // 1. Validasi keberadaan koordinat GPS
+    if (typeof currentLat === "undefined" || !currentLat || !currentLon) {
+        return; 
+    }
+
+    try {
+        // 2. Hitung posisi matahari (Azimuth & Altitude)
+        const sunPos = hitungMatahari(currentLat, currentLon);
+        
+        // 3. Hitung waktu matahari (Terbit & Terbenam)
+        const sunTimes = hitungMaghrib(currentLat, currentLon);
+
+        // 4. Update UI: Azimuth
+        const elAzi = document.getElementById('sun-azimuth');
+        if (elAzi) elAzi.textContent = sunPos.azi.toFixed(2) + "°";
+
+        // 5. Update UI: Altitude dengan indikator warna malam
+        const elAlt = document.getElementById('sun-altitude');
+        if (elAlt) {
+            elAlt.textContent = sunPos.alt.toFixed(2) + "°";
+            
+            // Jika matahari di bawah horizon (malam), tambahkan class 'night'
+            if (sunPos.alt < 0) {
+                elAlt.classList.add('night');
+            } else {
+                elAlt.classList.remove('night');
+            }
+        }
+
+        // 6. Update UI: Waktu Terbit & Terbenam
+        const elRise = document.getElementById('sun-rise');
+        const elSet = document.getElementById('sun-set');
+
+        if (elRise) elRise.textContent = formatDecimalTime(sunTimes.sunrise);
+        if (elSet) elSet.textContent = formatDecimalTime(sunTimes.decimal);
+
+    } catch (error) {
+        console.error("Gagal memperbarui Sun Card:", error);
+    }
+}
+
+// === FUNGSI PEMBANTU WAKTU DESIMAL ===
+function formatDecimalTime(decimal) {
+    if (isNaN(decimal) || decimal === null) return "--:--";
+    
+    // Pastikan nilai tetap dalam siklus 24 jam
+    let hours = Math.floor(decimal % 24);
+    if (hours < 0) hours += 24; 
+    
+    let minutes = Math.floor((decimal * 60) % 60);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+setInterval(updateSunCard, 1000);
+
 // === JALUR BULAN ===
 function generateHilalPath(lat, lon){
   let path = [];
@@ -2187,16 +2246,13 @@ function calibrateWithSun(){
 
 // === HITUNG MAGHRIB ===
 function hitungMaghrib(lat, lon, customDate=null){
-
   const now = customDate ? new Date(customDate) : new Date();
-
   const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
   const JD = (date.getTime()/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
 
   const epsilon = 23.439291 - 0.0130042*T;
-
   const L0 = (280.46646 + 36000.76983*T)%360;
   const M = 357.52911 + 35999.05029*T;
 
@@ -2205,9 +2261,7 @@ function hitungMaghrib(lat, lon, customDate=null){
           + 0.000289*Math.sin(3*M*rad);
 
   const lambda = L0 + C;
-
   const delta = Math.asin(Math.sin(epsilon*rad)*Math.sin(lambda*rad));
-
   const y = Math.tan((epsilon/2)*rad)**2;
 
   const EoT = 4 * deg * (
@@ -2218,97 +2272,65 @@ function hitungMaghrib(lat, lon, customDate=null){
     - 1.25*0.0167*0.0167*Math.sin(2*M*rad)
   );
 
-  const h0 = -0.833 * rad;
-
+  const h0 = -0.833 * rad; 
   const cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(delta)) /
                (Math.cos(lat*rad)*Math.cos(delta));
 
   let H;
-  
-  if(cosH < -1){
-    H = 180; // matahari tidak terbenam (polar case)
-  }else if(cosH > 1){
-    H = 0; // matahari tidak terbit
-  }else{
-    H = Math.acos(cosH)*deg;
-  }
+  if(cosH < -1) H = 180;
+  else if(cosH > 1) H = 0;
+  else H = Math.acos(cosH)*deg;
 
   const timezone = -now.getTimezoneOffset()/60;
-
   const solarNoon = 12 + timezone - (lon/15) - (EoT/60);
 
-  const maghrib = solarNoon + (H/15);
+  const sunrise = solarNoon - (H/15); // Terbit (Noon dikurang Hour Angle)
+  const sunset = solarNoon + (H/15);  // Terbenam (Noon ditambah Hour Angle)
 
-  return { decimal: maghrib };
+  return { 
+    sunrise: sunrise, 
+    decimal: sunset, // Tetap gunakan nama 'decimal' agar tidak merusak kode lama Anda
+    noon: solarNoon 
+  };
 }
 
 // === MAGHRIB WATCHER ===
-// Variabel kontrol untuk mencegah trigger berulang di menit yang sama
-let lastTriggeredDate = ""; 
-
-// Memantau waktu secara real-time dan memicu pergantian tanggal Hijriah
 function startMaghribWatcher() {
     console.log("🚀 Maghrib Watcher aktif: Memantau pergantian hari...");
-
+    
     setInterval(() => {
         if (!currentLat || !currentLon) return;
-
+        
         const now = new Date();
         const jamSekarangDesimal = now.getHours() + (now.getMinutes() / 60) + (now.getSeconds() / 3600);
         
-        // 1. Hitung waktu Maghrib hari ini berdasarkan lokasi
+        // Hitung waktu Maghrib hari ini
         const maghrib = hitungMaghrib(currentLat, currentLon);
-        
-        // 2. Buat ID unik untuk hari ini
         const todayId = now.toISOString().split('T')[0];
 
-        // Jika jam sekarang sudah melewati Maghrib 
-        // dan kita belum melakukan update otomatis untuk hari ini
+        // Jalankan jika sudah Maghrib dan belum diproses hari ini
         if (jamSekarangDesimal >= maghrib.decimal && lastTriggeredDate !== todayId) {
+            console.log(`%c 🌇 Maghrib Tiba: ${now.toLocaleTimeString()} `, 'background: #d35400; color: white; font-weight: bold;');
             
-            console.log(`%c 🌇 Waktu Maghrib Tiba (${now.toLocaleTimeString()}) `, 'background: #d35400; color: white; font-weight: bold;');
-            
-            // Eksekusi Update
-            if (typeof requestHijriUpdate === "function") {
-                requestHijriUpdate();
-            } else if (typeof updateHijriDisplay === "function") {
-                updateHijriDisplay();
-            }
-
-            // Tandai bahwa hari ini sudah di-update agar tidak trigger terus-menerus setiap detik
-            lastTriggeredDate = todayId;
-            
-            // Catat ke Audit Log jika tersedia
-            if (typeof logHijriAudit === "function") {
-                const data = getHijriFinal(currentLat, currentLon);
-                logHijriAudit(data, modeHijri);
-            }
+            lastTriggeredDate = todayId; // Kunci agar tidak berulang
+            requestHijriUpdate(); // Panggil fungsi eksekusi
         }
-        
-        // Reset flag jika berganti hari (tengah malam) agar besok bisa trigger lagi
-        if (jamSekarangDesimal < 1 && lastTriggeredDate === todayId) {
-        }
-    }, 1000); // Cek setiap 1 detik
+    }, 1000); 
 }
 
 // === MINTA UPDATE HIJRI ===
 function requestHijriUpdate() {
-    console.log("🔄 Requesting Hijri update...");
+    console.log("🔄 Melakukan update kalender Hijriah...");
     
-    // 1. Jalankan ulang perhitungan utama
+    // 1. Update Tampilan Kalender
     if (typeof updateHijriDisplay === "function") {
         updateHijriDisplay();
     }
 
-    // 2. Kirim Notifikasi
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("Waktu Maghrib", {
-            body: "Tanggal Hijriah telah berganti.",
-            icon: "/assets/icon-192.png"
-        });
-    }
+    // 2. Kirim Notifikasi via Fungsi Pusat
+    showNotif("Waktu Maghrib", "Tanggal Hijriah telah berganti ke hari baru.");
 
-    // 3. Update Audit Log (Jika diperlukan trigger instan)
+    // 3. Log Audit
     if (typeof currentLat !== "undefined" && currentLat) {
         const data = getHijriFinal(currentLat, currentLon);
         logHijriAudit(data, modeHijri);
@@ -2465,10 +2487,30 @@ function playBeep(freq=800, duration=100){
 }
 
 // === NOTIFIKASI ===
-function showNotif(judul,pesan){
-  if(Notification.permission==="granted"){
-    new Notification(judul,{body:pesan,icon:"/assets/icon-192.png"});
-  }
+function showNotif(judul, pesan) {
+    if (!("Notification" in window)) return;
+
+    if (Notification.permission === "granted") {
+        // Gunakan Service Worker agar support Android/PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(judul, {
+                    body: pesan,
+                    icon: "/assets/icon-192.png", // pastikan path icon benar
+                    badge: "/assets/icon-192.png",
+                    vibrate: [200, 100, 200]
+                });
+            }).catch(err => {
+                console.error("SW Notification Error:", err);
+                new Notification(judul, { body: pesan }); // Fallback Desktop
+            });
+        } else {
+            // Standar Browser Desktop
+            new Notification(judul, { body: pesan, icon: "/assets/icon-192.png" });
+        }
+    } else {
+        console.warn("Izin notifikasi belum diberikan.");
+    }
 }
 
 // === OBSERVASI ===
