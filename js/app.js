@@ -2760,148 +2760,69 @@ function nextMonth(current){
   };
 }
 
-// === DAPATKAN HIJRI ===
-function getHijriAstronomical(lat, lon){
+// --- FUNGSI DASAR (HISAB) ---
+function getHijriAstronomical(lat, lon) {
+    const now = new Date();
+    const ijtima = getLastIjtima();
+    const jdNow = now.getTime() / 86400000 + 2440587.5;
+    const jdIjtima = ijtima.getTime() / 86400000 + 2440587.5;
+    
+    const maghrib = hitungMaghrib(lat, lon)?.decimal ?? 18;
+    const jamNow = now.getHours() + now.getMinutes() / 60;
 
-  const now = new Date();
-  const SYNODIC = 29.530588853;
+    let ageDays = jdNow - jdIjtima;
+    
+    // Logika pergantian hari: Jika lewat maghrib, umur bulan bertambah 1 hari
+    let d = Math.floor(ageDays) + (jamNow >= maghrib ? 1 : 0) + 1;
 
-  const ijtima = getLastIjtima();
+    // Hitung Bulan & Tahun
+    const cycle = Math.floor(ageDays / 29.530588853);
+    let m = ((11 - 1 + cycle) % 12) + 1;
+    let y = 1447 + Math.floor((11 - 1 + cycle) / 12);
 
-  // =========================
-  // SAFETY TOTAL IJTIMA
-  // =========================
-  if (!ijtima || !(ijtima instanceof Date) || isNaN(ijtima.getTime())) {
-    console.error("❌ Ijtima tidak valid");
-
-    return {
-      d: 1,
-      m: 1,
-      y: 1447,
-      age: 0,
-      source: "error-ijtima"
-    };
-  }
-
-  const jdNow = now.getTime() / 86400000 + 2440587.5;
-  const jdIjtima = ijtima.getTime() / 86400000 + 2440587.5;
-
-  const ageDays = jdNow - jdIjtima;
-
-  // =========================
-  // DAY SAFE
-  // =========================
-  let d = Math.floor(ageDays) + 1;
-
-  const maghrib = hitungMaghrib(lat, lon)?.decimal ?? 18;
-  const jamNow = now.getHours() + now.getMinutes() / 60;
-
-  if (jamNow < maghrib) d -= 1;
-
-  d = Math.max(1, Math.min(30, d));
-
-  // =========================
-  // MONTH SAFE
-  // =========================
-  const cycle = Math.floor(ageDays / SYNODIC);
-
-  let m = ((11 - 1 + cycle) % 12) + 1;
-  let y = 1447 + Math.floor((11 - 1 + cycle) / 12);
-
-  if (!Number.isFinite(m)) m = 1;
-  if (!Number.isFinite(y)) y = 1447;
-
-  return {
-    d,
-    m,
-    y,
-    age: ageDays * 24,
-    source: "hisab-astronomical"
-  };
+    return { d: Math.min(30, d), m, y };
 }
 
-// == GET HIJRI HYBRID FINAL ===
+// === FUNGSI KOREKSI HYBRID) ===
 let statusHilal = "-";
 
-function getHijriHybrid(lat, lon){
+function getHijriHybrid(lat, lon) {
+    // 1. Ambil angka dasar dari Hisab (yang sudah benar tanggal 7)
+    const hisab = getHijriAstronomical(lat, lon);
+    if (!hisab) return null;
 
-  const now = new Date();
-  const hisab = getHijriAstronomical(lat, lon);
+    // 2. Tentukan Tanggal Penentuan (Maghrib 29 Syawal)
+    // Untuk Zulkaidah 1447H, ijtima adalah 17 April 2026 pagi.
+    const ijtima = getLastIjtima(); 
+    
+    // Kita buat sampel waktu: 17 April 2026 jam 18:15 (Waktu Maghrib standar)
+    // Menggunakan objek Date manual lebih aman untuk mengunci status awal bulan
+    const tglCek = new Date(ijtima);
+    tglCek.setHours(18, 15, 0, 0); 
 
-  // =========================
-  // SAFETY HISAB TOTAL
-  // =========================
-  if (!hisab || typeof hisab.d !== "number") {
-    return {
-      d: 1,
-      m: 1,
-      y: 1447,
-      age: 0,
-      source: "fallback-hisab-invalid"
-    };
-  }
+    // 3. Panggil Hilal Core dengan waktu yang sudah dikunci ke sore penentuan
+    const hilalAwal = hitungHilalCore(lat, lon, tglCek);
+    
+    // 4. DEBUG (Lihat di Console F12)
+    // Jika Alt muncul > 3, berarti fungsi hitungHilalCore kamu terlalu optimis/tinggi
+    console.log("Alt Hilal Sore Penentuan:", hilalAwal.alt);
 
-  // =========================
-  // MAGHRIB KEMARIN
-  // =========================
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
+    // 5. KRITERIA MABIMS
+    const isLulusMABIMS = (hilalAwal.alt >= 3 && hilalAwal.elo >= 6.4);
 
-  const maghribYesterday =
-    hitungMaghrib(lat, lon, yesterday)?.decimal ?? 18;
+    let result = { ...hisab, source: "hybrid" };
 
-  const maghribDateYesterday = new Date(yesterday);
-  maghribDateYesterday.setHours(
-    Math.floor(maghribYesterday),
-    Math.floor((maghribYesterday % 1) * 60),
-    0, 0
-  );
+    // 6. LOGIKA EKSEKUSI
+    // Jika Hilal tgl 17 April TIDAK lulus 3 derajat, maka Hybrid HARUS Hisab - 1
+    if (!isLulusMABIMS) {
+        if (hisab.d === 1) {
+            result.d = 30; // Istikmal
+        } else {
+            result.d = hisab.d - 1; // Ini yang akan merubah 7 menjadi 6
+        }
+    }
 
-  // =========================
-  // IJTIMA SAFE
-  // =========================
-  const ijtima = getLastIjtima();
-
-  const ijtimaValid =
-    ijtima instanceof Date &&
-    !isNaN(ijtima.getTime()) &&
-    ijtima < maghribDateYesterday;
-
-  // =========================
-  // HILAL SAFE TOTAL
-  // =========================
-  const hilalRaw =
-    hitungHilalCore(lat, lon, maghribDateYesterday);
-
-  const hilal = hilalRaw || { alt: 0, elo: 0 };
-
-  const imkan =
-    (hilal.alt >= 3 && hilal.elo >= 6.4);
-
-  // =========================
-  // JAM
-  // =========================
-  const maghribToday = hitungMaghrib(lat, lon)?.decimal ?? 18;
-  const jamNow = now.getHours() + now.getMinutes() / 60;
-
-  // =========================
-  // RESULT BASE
-  // =========================
-  let result = {
-    ...hisab,
-    source: "hybrid"
-  };
-
-  const masukHariBaru =
-    ijtimaValid &&
-    imkan &&
-    jamNow >= maghribToday;
-
-  result.d = masukHariBaru
-    ? hisab.d
-    : Math.max(1, hisab.d - 1);
-
-  return result;
+    return result;
 }
 
 // === RESET HYBRID ===
