@@ -2089,25 +2089,34 @@ function hitungHilal(lat, lon, customTime = null) {
     }
   } 
   
-  // === KONDISI C: SETELAH MAGHRIB (KEPUTUSAN FINAL) ===
+  // === KONDISI C: SETELAH MAGHRIB (KEPUTUSAN FINAL / STATUS MALAM) ===
   else {
-    // Jika berada di malam pergantian (Hisab mungkin sudah tanggal 1, tapi kita cek kondisi rukyatnya)
+    // 1. Malam Penentuan (Malam 29, 30, atau 1)
+    // Di sini kita gunakan angka tanggal yang sudah "naik" otomatis di UI Anda
     if (hari === 29 || hari === 30 || hari === 1) {
       if (imkan) {
         if (statusEl) statusEl.innerText = "Hilal terlihat (Imkan Rukyat)";
-        if (prediksiEl) prediksiEl.innerText = "Siklus bulan baru telah dimulai";
+        if (prediksiEl) prediksiEl.innerText = `Siklus bulan baru ${hisab.m} telah dimulai`;
       } else {
         if (statusEl) statusEl.innerText = "Istikmal/Tidak Imkan";
-        if (prediksiEl) prediksiEl.innerText = "Bulan digenapkan atau menunggu kriteria terpenuhi besok";
+        if (prediksiEl) prediksiEl.innerText = "Bulan digenapkan menjadi 30 hari";
       }
     } 
-    // Jika sudah stabil di awal bulan
+    // 2. Fase Normal (Malam 2 sampai 28)
     else {
-      if (statusEl) statusEl.innerText = "Bulan baru berjalan";
-      if (prediksiEl) prediksiEl.innerText = "Keputusan awal bulan sudah final";
+      if (statusEl) statusEl.innerText = `Fase Malam ${hari} Hijriah`;
+      
+      if (prediksiEl) {
+        if (hari < 15) {
+          prediksiEl.innerText = "Bulan dalam fase menuju Purnama";
+        } else if (hari === 15) {
+          prediksiEl.innerText = "Malam Purnama";
+        } else {
+          prediksiEl.innerText = "Bulan dalam fase susut menuju akhir bulan";
+        }
+      }
     }
   }
-
   return data;
 }
 
