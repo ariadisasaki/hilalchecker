@@ -36,6 +36,16 @@ let hijriState = {
   y: 1447,
   locked: false
 };
+
+// Data ini dihitung sekali saja saat aplikasi dibuka
+let CACHED_IJTIMA = null; 
+function refreshIjtimaData() {
+    // Panggil fungsi berat Anda hanya di sini
+    CACHED_IJTIMA = getLastIjtima();
+}
+// Jalankan saat startup
+refreshIjtimaData();
+
 const SYNODIC_MONTH = 29.530588;
 const DAY_MS = 86400000;
 setInterval(() => {
@@ -2011,7 +2021,7 @@ function drawMoonRealistic(illumination){
   ctx.fill();
 }
 
-// ==== HITUNG HILAL (REVISI FINAL - FIXED ERROR) ===
+// ==== HITUNG HILAL (VERSI OPTIMASI - ANTI LAG) ===
 function hitungHilal(lat, lon, customTime = null) {
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
@@ -2022,32 +2032,39 @@ function hitungHilal(lat, lon, customTime = null) {
   // 1. Definisikan Waktu Referensi
   const now = customTime ? new Date(customTime) : new Date();
 
-  // 2. Ambil data Kalender (Kirim parameter 'now')
+  // 2. Gunakan CACHED_IJTIMA (Pastikan sudah ada di baris paling atas script luar)
+  // Ini mencegah fungsi memanggil getLastIjtima() berulang kali yang bikin lag
+  const ijtima = CACHED_IJTIMA; 
+
+  // 3. Ambil data Kalender (Sekarang jadi ringan karena pakai Cache)
   const dataHisab = getHijriAstronomical(lat, lon);
   const dataHybrid = getHijriHybrid(lat, lon);
   
-  // Pastikan variabel ini tersedia untuk logika di bawah
   const hariHisab = dataHisab.d;
   const hariHybrid = dataHybrid.d;
 
-  // 3. Hitung Data Astronomi
+  // 4. Hitung Data Astronomi Core
   const data = hitungHilalCore(lat, lon, now);
   
   const alt = Number(data.alt) || 0;
   const azi = Number(data.azi) || 0;
   const elo = Number(data.elo) || 0;
-  const age = Number(data.age) || 0;
   const illumination = Number(data.illumination) || 0;
+
+  // 5. HITUNG UMUR BULAN (AGE) DI SINI
+  // Rumus: (Waktu Sekarang - Waktu Ijtima) dalam jam
+  const age = (now.getTime() - ijtima.getTime()) / 3600000;
 
   // === UI ANGKA ===
   const set = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.innerText = val;
   };
+
   set("alt", alt.toFixed(2) + "°");
   set("azi", azi.toFixed(2) + "°");
   set("elo", elo.toFixed(2) + "°");
-  set("age", age.toFixed(1) + " jam");
+  set("age", age.toFixed(1) + " jam"); // Menampilkan age hasil hitungan di atas
   set("illum", illumination.toFixed(2) + "%");
 
   // === VISIBILITY ===
@@ -2058,7 +2075,7 @@ function hitungHilal(lat, lon, customTime = null) {
   set("visibility", hitungVisibilityScore(alt, elo, age) + "%");
 
   // === REFERENSI WAKTU ===
-  const ijtima = getLastIjtima();
+  // Menggunakan ijtima dari cache, bukan panggil fungsi baru
   set("statusIjtima", now >= ijtima ? "Sudah Ijtima" : "Belum Ijtima");
 
   const maghrib = hitungMaghrib(lat, lon, now)?.decimal ?? 18;
@@ -2698,28 +2715,22 @@ function nextMonth(current){
 }
 
 // === HIJRI HISAB ===
-function getHijriAstronomical(lat, lon) {
-    const now = new Date();
-    const ijtima = getLastIjtima();
+function getHijriAstronomical(lat, lon, customDate = null) { 
+    const now = customDate ? new Date(customDate) : new Date();
     
-    // Membandingkan tanggal murni (00:00)
+    // GUNAKAN CACHE (Hemat 2-3 detik)
+    const ijtima = CACHED_IJTIMA; 
+
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tglIjtima = new Date(ijtima.getFullYear(), ijtima.getMonth(), ijtima.getDate());
-    
-    // Hasil hari ini
-    let diffDays = Math.round((tglSekarang - tglIjtima) / 86400000); 
 
+    let diffDays = Math.round((tglSekarang - tglIjtima) / 86400000);
     const maghrib = hitungMaghrib(lat, lon, now)?.decimal ?? 18;
     const jamNow = now.getHours() + now.getMinutes() / 60;
+    
+    let d = diffDays;
+    if (jamNow >= maghrib) d += 1;
 
-    let d = diffDays; 
-
-    // Jika sudah Maghrib, baru naik ke tanggal berikutnya
-    if (jamNow >= maghrib) {
-        d += 1;
-    }
-
-    // Hitung Bulan & Tahun
     const ageTotal = (now.getTime() - ijtima.getTime()) / 86400000;
     const cycle = Math.floor(ageTotal / 29.530588853);
     let m = ((11 - 1 + cycle) % 12) + 1;
@@ -2730,37 +2741,31 @@ function getHijriAstronomical(lat, lon) {
 
 // === HIJRI HYBRID ===
 let statusHilal = "-";
-function getHijriHybrid(lat, lon) {
-    const hisab = getHijriAstronomical(lat, lon);
+function getHijriHybrid(lat, lon, customDate = null) {
+    const now = customDate ? new Date(customDate) : new Date();
     
-    // 1. Ambil data hilal pada Maghrib hari ke-29 bulan berjalan
-    const ijtima = getLastIjtima();
+    // 1. Ambil data hisab (Sekarang sudah ringan)
+    const hisab = getHijriAstronomical(lat, lon, now);
+    
+    // 2. Gunakan Cache Ijtima
+    const ijtima = CACHED_IJTIMA;
     const tglPenentuan = new Date(ijtima);
-    tglPenentuan.setHours(18, 15, 0, 0); // Estimasi waktu Maghrib
-    
+    tglPenentuan.setHours(18, 15, 0, 0);
+
+    // 3. Panggil core (Ini hitungan posisi hilal)
     const hilal = hitungHilalCore(lat, lon, tglPenentuan);
-    
-    // 2. Cek Kriteria MABIMS (Tinggi ≥ 3° dan Elongasi ≥ 6.4°)
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4);
-    
+
     let d = hisab.d;
     let m = hisab.m;
     let y = hisab.y;
 
-    // 3. LOGIKA OTOMATIS:
-    // Jika secara astronomis sudah masuk tanggal baru, tapi Hilal belum cukup syarat,
-    // maka tanggal hybrid harus dikurangi 1 (Istikmal/penggenapan bulan).
-    if (!imkanRukyat) {
-        d = d - 1;
-    }
+    if (!imkanRukyat) d -= 1;
 
-    // Koreksi jika d menjadi 0 (pindah ke bulan sebelumnya)
     if (d < 1) {
-        d = 30;
-        m = m - 1;
+        d = 30; m -= 1;
         if (m < 1) { m = 12; y--; }
     }
-
     return { d, m, y };
 }
 
