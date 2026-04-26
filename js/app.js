@@ -2183,7 +2183,7 @@ function formatDecimalTime(decimal) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
-setInterval(updateSunCard, 1000);
+setInterval(updateSunCard, 10000);
 
 // === JALUR BULAN ===
 function generateHilalPath(lat, lon){
