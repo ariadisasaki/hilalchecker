@@ -48,9 +48,6 @@ refreshIjtimaData();
 
 const SYNODIC_MONTH = 29.530588;
 const DAY_MS = 86400000;
-setInterval(() => {
-  updateHijriDisplay();
-}, 2000);
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -1578,53 +1575,78 @@ async function updateAddress(lat, lon) {
     }
 }
 
-// === 3. INISIALISASI APLIKASI ===
+// === 3. INISIALISASI APLIKASI (CENTRALIZED VERSION) ===
 async function initApp(lat, lon) {
+    if (!lat || !lon) return;
     locationInitialized = true;
 
-    // Jalankan fungsi pendukung jika ada
+    console.log("🚀 Aplikasi Dimulai: Menginisialisasi fungsi pusat...");
+
+    // A. Jalankan fungsi pendukung sekali di awal
     try {
         if (typeof getMagneticDeclination === 'function') await getMagneticDeclination(lat, lon);
         if (typeof startMaghribWatcher === 'function') startMaghribWatcher(lat, lon);
-    } catch (e) { console.warn("Fungsi pendukung belum siap."); }
+    } catch (e) { 
+        console.warn("Beberapa fungsi pendukung gagal dimuat, aplikasi tetap berjalan."); 
+    }
 
-    // Hitung data pertama kali agar UI terisi
+    // B. Hitungan Pertama (Initial Calculation)
+    // Pastikan CACHED_IJTIMA sudah ada agar hitungHilal tidak lag
+    if (!CACHED_IJTIMA) refreshIjtimaData();
     hilalDataFull = hitungHilal(lat, lon);
 
-    // TIMER A: Update hitungan Astronomi (Tiap 10 Detik)
+    // ============================================================
+    // TIMER 1: Astronomi & Data (Tiap 10 Detik)
+    // Fokus pada komputasi berat agar tidak membebani frame rate.
+    // ============================================================
     setInterval(() => {
         if (currentLat && currentLon) {
             hilalDataFull = hitungHilal(currentLat, currentLon);
+            // Update posisi matahari untuk data card
+            if (typeof updateSunCard === 'function') updateSunCard();
         }
     }, 10000);
 
-    // TIMER B: Update UI & Countdown (Tiap 1 Detik)
+    // ============================================================
+    // TIMER 2: UI, AR, & Countdown (Tiap 1 Detik / 1000ms)
+    // Fokus pada responsivitas visual bagi pengguna.
+    // ============================================================
     setInterval(() => {
         const now = new Date();
-        const maghribData = typeof hitungMaghrib === 'function' ? hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
-        const maghrib = maghribData ? maghribData.decimal : 18;
+        const maghribData = typeof hitungMaghrib === 'function' ? 
+            hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
 
-        // Render UI Utama
+        // 1. Update UI Prediksi & Hilal
         if (typeof renderUI === 'function') renderUI();
         if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
         
-        // Update Insight & Teks Detail
+        // 2. Update Insight Text & Progress
         const insightEl = document.getElementById('insight');
         if (insightEl && typeof getHijriInsight === 'function') {
-            insightEl.innerHTML = getHijriInsight(hilalDataFull, maghrib, now);
+            insightEl.innerHTML = getHijriInsight(hilalDataFull, maghribData.decimal, now);
         }
         
-        // Update Countdown Maghrib
+        // 3. Update Countdown Maghrib
         const countEl = document.getElementById('countdownMaghrib');
         if (countEl && typeof getCountdownMaghrib === 'function') {
-            countEl.innerText = getCountdownMaghrib(now, maghrib);
+            countEl.innerText = getCountdownMaghrib(now, maghribData.decimal);
         }
+
+        // 4. Update AR Marker & Path (Smooth movement)
+        if (typeof updateHilalAR === 'function') updateHilalAR();
+        
     }, 1000);
 
-    // TIMER C: Update Tanggal (Tiap 2 Detik)
+    // ============================================================
+    // TIMER 3: Kalender Hijriah (Tiap 2 Detik)
+    // Update display tanggal secara berkala.
+    // ============================================================
     setInterval(() => {
         if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
     }, 2000);
+    setTimeout(() => {
+      updateSunCard();
+    }, 0); 
 }
 
 // === SENSOR ===
@@ -1668,7 +1690,7 @@ function initSensor(){
     window.lastAlpha = lastAlpha;
 
     // === KIRIM KE AR ===
-    updateAR(lastAlpha, lastBeta, lastGamma);
+    /* updateAR(lastAlpha, lastBeta, lastGamma); */
   }
 
   // === EVENT UTAMA ===
@@ -2182,8 +2204,6 @@ function formatDecimalTime(decimal) {
     
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
-
-setInterval(updateSunCard, 10000);
 
 // === JALUR BULAN ===
 function generateHilalPath(lat, lon){
