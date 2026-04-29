@@ -37,13 +37,13 @@ let hijriState = {
   locked: false
 };
 
-// Data ini dihitung sekali saja saat aplikasi dibuka
+// === HITUNG SEKALI SAJA SAAT APLIKASI DIBUKA ===
 let CACHED_IJTIMA = null; 
 function refreshIjtimaData() {
     // Panggil fungsi berat Anda hanya di sini
     CACHED_IJTIMA = getLastIjtima();
 }
-// Jalankan saat startup
+// === JALANKAN SAAT STARTUP ===
 refreshIjtimaData();
 
 const SYNODIC_MONTH = 29.530588;
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!deferredPrompt) return;
 
-    // ⛔ HAPUS notif di sini (biar tidak double)
+    // === HAPUS NOTIFIKASI ===
     deferredPrompt.prompt();
 
     const choice = await deferredPrompt.userChoice;
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if ("serviceWorker" in navigator){
       navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification("PWA Installer", {
+        reg.showNotification("App Installer", {
           body: msg,
           icon: "/assets/icon-192.png"
         });
@@ -101,11 +101,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === SUDAH DIINSTALL ===
   window.addEventListener("appinstalled", () => {
-    console.log("PWA sudah diinstall");
+    console.log("App sudah diinstall");
 
     installBtn.style.display = "none";
 
-    // 🔥 HANYA DI SINI NOTIF MUNCUL
+    // === MUNCULKAN NOTIFIKASI ===
     showInstallNotification("Aplikasi berhasil diinstall!");
   });
 
@@ -146,7 +146,7 @@ let modeHijri = true; // default: Hisab
 
 let stars = [];
 
-// ⭐ DATA BINTANG REAL
+// === DATA BINTANG REAL ===
 const STAR_CATALOG = [
   ["Sirius", 101.287, -16.716, -1.46],
   ["Canopus", 95.987, -52.695, -0.74],
@@ -169,10 +169,10 @@ const STAR_CATALOG = [
   ["Mimosa", 191.930, -59.688, 1.25]
 ];
 
-// 🌌 GALAXY POINTS
+// === GALAXY POINTS ===
 let galaxyPoints = [];
 
-// 🪐 DATA PLANET (SIMPLE APPROX)
+// === DATA PLANET ===
 const PLANETS = [
   { name: "Merkurius", color: "gray" },
   { name: "Venus", color: "white" },
@@ -243,7 +243,7 @@ let sun = {
 let moon = {
   alt: 0,
   azi: 0,
-  illuminated: 0 // 0 - 1 (fase bulan / terang)
+  illuminated: 0 // 0 - 1 (fase bulan/terang)
 };
 
 let star_catalog = []; // array bintang
@@ -291,53 +291,41 @@ function initHijriToggle(){
     return;
   }
 
-  // =========================
-  // 🔹 AMBIL MODE DARI STORAGE
-  // =========================
+  // === AMBIL MODE DARI STORAGE ===
   modeHijri = JSON.parse(localStorage.getItem("modeHijri"));
 
   if(modeHijri === null) modeHijri = true; // default: hisab
 
-  // =========================
-  // 🔹 SET UI AWAL
-  // =========================
+  // === SET UI AWAL ===
   checkbox.checked = modeHijri;
   label.innerText = modeHijri ? "Mode Hisab" : "Mode Hybrid";
 
-  // =========================
-  // 🔥 RENDER AWAL (WAJIB DIPAKSA 1x SAJA)
-  // =========================
+  // === RENDER AWAL ===
   if(currentLat && currentLon){
     updateHijriDisplay(); // ✅ pakai display centralized
   }
 
-  // =========================
-  // 🔹 EVENT TOGGLE
-  // =========================
+  // === EVENT TOGGLE ===
   checkbox.addEventListener("change", ()=>{
 
     modeHijri = checkbox.checked;
 
-    // simpan mode
+    // === SIMPAN MODE ===
     localStorage.setItem("modeHijri", JSON.stringify(modeHijri));
 
-    // update label
+    // === UPDATE LABEL ===
     label.innerText = modeHijri ? "Mode Hisab" : "Mode Hybrid";
 
     console.log("🔄 Mode berubah:", modeHijri ? "Hisab" : "Hybrid");
 
-    // =========================
-    // 🔥 RESET STATE
-    // =========================
+    // === RESET STATE ===
     sudahCekHariIni = false;
 
     if(typeof lastRender !== "undefined"){
       lastRender.time = 0;
     }
 
-    // =========================
-    // 🔥 UPDATE UI (INI FIX UTAMA)
-    // =========================
+    // === UPDATE UI ===
     if(currentLat && currentLon){
 
       updateHijriDisplay();
@@ -376,7 +364,7 @@ window.onload = () => {
     canvas.height = 80;
   }
   
-  // Tombol Kalibrasi Kompas
+  // === TOMBOL KALIBRASI KOMPAS ===
   const calibBtn = document.getElementById("calibrateBtn");
   if(calibBtn){
     calibBtn.addEventListener("click", ()=>{
@@ -384,7 +372,7 @@ window.onload = () => {
     });
   }
 
-  // Notifikasi & audio aktif otomatis saat klik pertama
+  // === NOTIF DAN AUDIO AKTIF SAAT KLIK PERTAMA ===
   document.body.addEventListener("click", () => {
     if(!audioCtx){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -512,7 +500,7 @@ function drawSkyGrid(pitch, heading){
 
     let deltaAlt = alt - pitch;
 
-    // 🔥 hanya dekat horizon
+    // === HANYA DEKAT HORIZON ===
     if(Math.abs(deltaAlt) > 40) return;
 
     let y = height/2 - (deltaAlt / FOV) * height;
@@ -552,7 +540,7 @@ function drawSkyGrid(pitch, heading){
 // === INIT BINTANG ===
 function initStars(){
 
-  // ⭐ bintang katalog (tetap)
+  // === BINTANG KATALOG ===
   stars = STAR_CATALOG.map(s => ({
     name: s[0],
     ra: s[1],
@@ -561,8 +549,8 @@ function initStars(){
     real: true
   }));
 
-  // ⭐ tambahan bintang random
-  const extraStars = 1000; // 🔥 bisa kamu ubah (500–3000)
+  // === TAMBAHAN BINTANG ===
+  const extraStars = 1000; // bisa diubah (500–3000)
 
   for(let i=0;i<extraStars;i++){
     stars.push({
@@ -583,7 +571,7 @@ function raDecToAltAz(ra, dec, lat, lon, date){
   const JD = (date.getTime()/86400000)+2440587.5;
   const T = (JD - 2451545) / 36525;
 
-  // 🔥 GMST
+  // === GMST ===
   let GMST = 280.46061837 + 360.98564736629*(JD - 2451545);
   GMST = (GMST % 360 + 360) % 360;
 
@@ -671,13 +659,13 @@ function altAzToXY(alt, azi){
   if(isNaN(alt) || isNaN(azi)) return null;
   if(alt < 0) return null;
 
-  // normalisasi
+  // === NORMALISASI ===
   azi = (azi + 360) % 360;
 
-  // 🔥 BALIK ARAH AZIMUTH
+  // === BALIK ARAH AZIMUTH ===
   let x = ((360 - azi) / 360) * canvas.width;
 
-  // altitude tetap
+  // === ALTITUDE TETAP ===
   let y = canvas.height - (alt / 90) * canvas.height;
 
   return { x, y };
@@ -709,23 +697,17 @@ function drawMoon(){
 
   let sun = sunCache;
 
-  // =========================
-  // 🌫 VISIBILITY SYSTEM
-  // =========================
-
+  // === VISIBILITY SYSTEM ===
   let vf = getVisibilityFactor(sun.alt);
 
-  // 🌙 fase bulan (0 = gelap, 1 = purnama)
+  // === FASE BULAN (0 = GELAP, 1 = PURNAMA)
   let phase = moonData.illumination ?? 0.5;
 
-  // =========================
-  // 🌙 FINAL BRIGHTNESS
-  // =========================
-
+  // === FINAL KECERAHAN ===
   // moon tetap terlihat siang tapi lebih redup
   let alpha = (0.2 + 0.8 * phase) * vf;
 
-  // tambahan rule realistis:
+  // === TAMBAHAN RULE REALISTIS ===
   if(sun.alt > 0){
     alpha *= 0.25; // siang → redup tapi masih ada
   } 
@@ -733,31 +715,25 @@ function drawMoon(){
     alpha *= 0.6;  // senja → agak jelas
   }
 
-  // =========================
-  // 🌙 DRAW MOON BODY
-  // =========================
-
+  // === GAMBAR BENTUK BULAN ===
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
 
   ctx.fillStyle = `rgba(255, 255, 210, ${alpha})`;
   ctx.fill();
 
-  // 🌟 glow lembut (moonlight effect)
+  // === GLOW LEMBUAT ===
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
   ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.15})`;
   ctx.fill();
 
-  // =========================
-  // 🏷 LABEL MOON (ADAPTIVE)
-  // =========================
-
+  // === LABEL BULAN ===
   if(alpha > 0.15){
 
     ctx.font = "12px Arial";
 
-    // shadow hanya malam/senja
+    // === BAYANGAN HANYA MALAM/SENJA ===
     if(sun.alt <= 0){
       ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.shadowBlur = 3;
@@ -792,30 +768,30 @@ function drawClouds(){
 
   const sun = sunCache;
 
-  // 🌙 malam → tidak tampil
+  // === MALAM TIDAK TAMPIL ===
   if(sun.alt <= 0) return;
 
-  // ☀️ opacity berdasarkan ketinggian matahari
+  // === OPACITY BERDASARKAN KETINGGIAN MATAHARI ===
   let alpha = Math.min(1, sun.alt / 30) * 0.6;
 
-  // 🔥 waktu diperlambat
+  // === WAKTU DIPERLAMBAT ===
   const t = Date.now() * 0.00003;
 
   clouds.forEach(c => {
 
-    // === GERAKAN UTAMA (drift pelan ke kanan)
+    // === GERAKAN UTAMA (DRIFT PELAN KE KANAN) ===
     c.x += c.speed;
 
-    // === EFEK ANGIN HALUS
+    // === EFEK ANGIN HALUS ===
     c.x += Math.sin(t + c.y) * c.speed * 0.3;
 
-    // === WRAP LAYAR
+    // === WRAP LAYAR ===
     if(c.x > canvas.width + 120){
       c.x = -120;
       c.y = Math.random() * canvas.height * 0.4; // biar variasi
     }
 
-    // === GAMBAR CLOUD
+    // === GAMBAR AWAN ===
     ctx.beginPath();
     ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`;
 
@@ -849,7 +825,7 @@ function drawStars(){
 
   stars.forEach(star => {
 
-    // 🔥 HITUNG POSISI DULU
+    // === HITUNG POSISI DULU ===
     const coord = raDecToAltAz(
       star.ra,
       star.dec,
@@ -863,36 +839,27 @@ function drawStars(){
     const pos = altAzToXY(coord.alt, coord.azi);
     if(!pos) return;
 
-    // =========================
-    // 🌟 BRIGHTNESS SYSTEM BARU
-    // =========================
-
+    // === KECERAHAN SISTEM ===
     const size = star.real ? 2.5 : 1;
     const baseBrightness = star.real ? 1 : 0.3;
 
-    // 🌫 fade berdasarkan visibility + atmosfer
+    // === FADE BERDASARKAN VISIBILITY DAN ATMOSFER === 
     let alpha = vf * baseBrightness;
 
-    // 🌙 tambahan fade siang (biar lebih natural)
+    // === TAMBAHAN FADE SIANG ===
     if(sun.alt > 0){
       alpha *= 0;          // siang → hilang total
     } else if(sun.alt > -6){
       alpha *= 0.25;       // senja → redup
     }
 
-    // =========================
-    // ⭐ DRAW STAR POINT
-    // =========================
-
+    // === GAMBAR TITIK BINTANG ===
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
     ctx.fill();
 
-    // =========================
-    // 🏷 LABEL SYSTEM (BARU)
-    // =========================
-
+    // === LABEL SISTEM ===
     if(star.real && star.mag < 1.0 && alpha > 0.15){
 
       let labelColor;
@@ -941,7 +908,7 @@ function drawPlanets(){
 
   PLANETS.forEach(planet => {
 
-    // 🔭 posisi planet
+    // === POSISI PLANET ===
     const eq = getPlanetPosition(planet.name, now);
 
     const coord = raDecToAltAz(
@@ -957,10 +924,7 @@ function drawPlanets(){
     const pos = altAzToXY(coord.alt, coord.azi);
     if(!pos) return;
 
-    // =========================
-    // 🪐 VISIBILITY SYSTEM (SAMAKAN DENGAN STAR)
-    // =========================
-
+    // === VISIBILITY SYSTEM ===
     const sizeMap = {
       "Merkurius": 3,
       "Venus": 5,
@@ -971,10 +935,10 @@ function drawPlanets(){
 
     let baseBrightness = 1;
 
-    // 🌫 fading utama (ikut langit)
+    // === FADING UTAMA IKUT LANGIT ===
     let alpha = vf * baseBrightness;
 
-    // 🌙 tambahan atmosfer seperti bintang
+    // === TAMBAHAN ATMOSFER SEPERTI BINTANG ===
     if(sun.alt > 0){
       alpha *= 0;        // siang → hilang total
     } 
@@ -982,26 +946,20 @@ function drawPlanets(){
       alpha *= 0.25;     // senja → redup
     }
 
-    // =========================
-    // 🪐 DRAW PLANET
-    // =========================
-
+    // === GAMBAR PLANET ===
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, sizeMap[planet.name], 0, Math.PI * 2);
 
     ctx.fillStyle = `${planet.color.replace("rgb", "rgba").replace(")", `,${alpha})`)}`;
     ctx.fill();
 
-    // glow
+    // === GLOW ===
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
     ctx.fillStyle = `${planet.color.replace("rgb", "rgba").replace(")", `,${alpha * 0.3})`)}`;
     ctx.fill();
 
-    // =========================
-    // 🏷 LABEL SYSTEM (SAMAKAN LOGIKA STAR)
-    // =========================
-
+    // === LABEL SISTEM ===
     if(alpha > 0.15){
 
       let labelColor;
@@ -1053,10 +1011,7 @@ function drawGalaxy(){
     const pos = altAzToXY(coord.alt, coord.azi);
     if(!pos) return;
 
-    // =========================
-    // 🌌 VISIBILITY SYSTEM
-    // =========================
-
+    // === VISIBILITY SYSTEM ===
     let alpha = vf * 0.05; // galaksi sangat redup
 
     if(sun.alt > 0){
@@ -1068,10 +1023,7 @@ function drawGalaxy(){
 
     if(alpha <= 0) return;
 
-    // =========================
-    // 🌌 DRAW
-    // =========================
-
+    // === GAMBAR ===
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 1.2, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(180,200,255,${alpha})`;
@@ -1089,9 +1041,7 @@ function drawSun(){
   let pos = altAzToXY(sun.alt, sun.azi);
   if(!pos) return;
 
-  // =========================
-  // 🌞 BRIGHTNESS SYSTEM
-  // =========================
+  // === KECERAHAN SISTEM ===
   let alpha = 1;
 
   if(sun.alt < -5){
@@ -1100,9 +1050,7 @@ function drawSun(){
 
   if(alpha <= 0) return;
 
-  // =========================
-  // ☀️ CORE + GLOW (utama)
-  // =========================
+  // === CORE + GLOW (UTAMA) ===
   ctx.shadowColor = "rgba(255, 200, 100, 0.6)";
   ctx.shadowBlur = 40;
 
@@ -1115,25 +1063,19 @@ function drawSun(){
   ctx.shadowBlur = 0;
   ctx.shadowColor = "transparent";
 
-  // =========================
-  // 🌥 GLOW BESAR (tembus awan)
-  // =========================
+  // === GLOW BESAR (TEMBUS AWAN) ===
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, 60, 0, Math.PI * 2);
   ctx.fillStyle = `rgba(255, 220, 120, ${alpha * 0.05})`;
   ctx.fill();
 
-  // =========================
-  // 🌤 HALO KECIL
-  // =========================
+  // === HALO KECIL ===
   ctx.beginPath();
   ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
   ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.15})`;
   ctx.fill();
 
-  // =========================
-  // 🏷 LABEL
-  // =========================
+  // === LABEL ===
   ctx.font = "12px Arial";
 
   ctx.shadowColor = "rgba(0,0,0,0.4)";
@@ -1179,7 +1121,7 @@ function getAutoSpeed(){
 
   const selisih = Math.abs(jam - maghrib);
 
-  // 🔥 LOGIKA AUTO
+  // === LOGIKA AUTO ===
   if(selisih > 3){
     return 1;        // normal (jauh dari maghrib)
   } else if(selisih > 1){
@@ -1198,11 +1140,11 @@ function loopPlanetarium(){
 
   if(currentLat && currentLon){
 
-    // 🔥 HITUNG SEKALI SAJA DI SINI
+    // === HITUNG SEKALI SAJA DI SINI ===
     sunCache = hitungMatahari(currentLat, currentLon);
     moonCache = hitungHilalCore(currentLat, currentLon);
 
-    // optional (biar tetap kompatibel)
+    // === AGAR TETAP KOMPATIBEL ===
     sun = sunCache;
     moon = moonCache;
   }
@@ -1323,42 +1265,39 @@ function hitungHilalCore(lat, lon, customTime=null){
     + Math.cos(latMoon*rad)*Math.sin(epsilon*rad)*Math.sin(lonMoon*rad)
   ) * deg;
 
-  // ====================
-  // 🔥 STABILITAS USNO
-  // ====================
-
+  // === STABILITAS USNO ===
   const GMST = (280.46061837 + 360.98564736629*(JD - 2451545)) % 360;
 
-  // Normalisasi LST
+  // === NORMALISASI LST ===
   const LST = (GMST + lon + 360) % 360;
 
-  // Stabilisasi HA (-180..180)
+  // === STABILISASI HA ===
   const HA = ((LST - moonRA) + 540) % 360 - 180;
 
-  // Altitude
+  // === ALTITUDE ===
   let alt = Math.asin(
     Math.sin(lat*rad)*Math.sin(moonDec*rad)
     + Math.cos(lat*rad)*Math.cos(moonDec*rad)*Math.cos(HA*rad)
   ) * deg;
 
-  // Azimuth USNO Style
+  // === AZIMUTH USNO ===
   let azi = Math.atan2(
     Math.sin(HA*rad),
     Math.cos(HA*rad)*Math.sin(lat*rad)
     - Math.tan(moonDec*rad)*Math.cos(lat*rad)
   ) * deg;
 
-  // Normalisasi
+  // === NORMALISASI ===
   azi = (azi + 360) % 360;
 
-  // Konversi ke Kompas
+  // === KONVERSI KE KOMPAS ===
   azi = (azi + 180) % 360;
 
-  // Koreksi
+  // === KOREKSI ===
   alt = koreksiParallax(alt);
   alt = koreksiRefraction(alt);
 
-  // Elongasi
+  // === ELONGASI ===
   let cosElo =
     Math.sin(sunDec*rad)*Math.sin(moonDec*rad)
     + Math.cos(sunDec*rad)*Math.cos(moonDec*rad)
@@ -1375,9 +1314,7 @@ function hitungHilalCore(lat, lon, customTime=null){
   // Cahaya Bulan
   const illumination = (1 - Math.cos(elo * rad)) / 2 * 100;
 
-  // =======
-  // OUTPUT
-  // =======
+  // === OUTPUT ===
   return {
     alt: Number(alt) || 0,
     azi: Number(azi) || 0,
@@ -1507,16 +1444,16 @@ function getLocation() {
         currentLat = p.coords.latitude;
         currentLon = p.coords.longitude;
         
-        // Update koordinat dan alamat
+        // === UPDATE KOORDINAT DAN ALAMAT ===
         updateAddress(currentLat, currentLon);
 
         if (!locationInitialized) {
             initApp(currentLat, currentLon);
         }
     }, (err) => {
-        // Fallback jika GPS mati (Contoh: Selong, NTB)
-        currentLat = -8.6522;
-        currentLon = 116.5293;
+        // === FALLBACK JIKA GPS MATI (SELONG, NTB) ===
+        currentLat = -8.652082;
+        currentLon = 116.528827;
         
         const lokasiEl = document.getElementById('lokasi');
         if (lokasiEl) lokasiEl.innerText = "GPS mati, memakai lokasi default";
@@ -1579,7 +1516,7 @@ async function initApp(lat, lon) {
     if (!lat || !lon) return;
     locationInitialized = true;
 
-    console.log("🚀 Aplikasi Dimulai: Menginisialisasi fungsi pusat...");
+    console.log("🚀 Aplikasi dimulai: Menginisialisasi fungsi pusat...");
 
     // A. Jalankan fungsi pendukung sekali di awal
     try {
@@ -1590,14 +1527,11 @@ async function initApp(lat, lon) {
     }
 
     // B. Hitungan Pertama (Initial Calculation)
-    // Pastikan CACHED_IJTIMA sudah ada agar hitungHilal tidak lag
     if (!CACHED_IJTIMA) refreshIjtimaData();
     hilalDataFull = hitungHilal(lat, lon);
 
-    // ============================================================
     // TIMER 1: Astronomi & Data (Tiap 10 Detik)
     // Fokus pada komputasi berat agar tidak membebani frame rate.
-    // ============================================================
     setInterval(() => {
         if (currentLat && currentLon) {
             hilalDataFull = hitungHilal(currentLat, currentLon);
@@ -1606,10 +1540,8 @@ async function initApp(lat, lon) {
         }
     }, 10000);
 
-    // ============================================================
-    // TIMER 2: UI, AR, & Countdown (Tiap 1 Detik / 1000ms)
+    // TIMER 2: UI, AR, & Countdown (tiap 1 Detik)
     // Fokus pada responsivitas visual bagi pengguna.
-    // ============================================================
     setInterval(() => {
         const now = new Date();
         const maghribData = typeof hitungMaghrib === 'function' ? 
@@ -1636,10 +1568,8 @@ async function initApp(lat, lon) {
         
     }, 1000);
 
-    // ============================================================
-    // TIMER 3: Kalender Hijriah (Tiap 2 Detik)
+    // TIMER 3: Kalender Hijriah (tiap 2 Detik)
     // Update display tanggal secara berkala.
-    // ============================================================
     setInterval(() => {
         if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
     }, 2000);
@@ -1721,7 +1651,7 @@ async function getMagneticDeclination(lat, lon){
     console.warn("Pemanggilan API deklinasi gagal, diubah pakai offline");
   }
 
-  // 🔥 FALLBACK OFFLINE
+  // === FALLBACK OFFLINE ===
   declinationGlobal = (lon - 110) * 0.05;
 
   return declinationGlobal;
@@ -1842,7 +1772,7 @@ function getNextHijriProgress(age){
   return (jamDalamHari / 24) * 100;
 }
 
-// === HITUNG MUNDUR NAGHRIB ===
+// === HITUNG MUNDUR MAGHRIB ===
 function getCountdownMaghrib(now, maghrib){
   const jamSekarang = now.getHours() + now.getMinutes()/60;
 
@@ -1862,14 +1792,14 @@ function getCountdownMaghrib(now, maghrib){
 
 // === RENDER UI ====
 function renderUI() {
-    // 1. Pastikan koordinat tersedia (Gunakan satu sumber kebenaran)
+    // 1. Pastikan koordinat tersedia (gunakan satu sumber kebenaran)
     // Jika currentLat kosong, jangan render dulu agar tidak terjadi glitch angka lompat
     if (!currentLat || !currentLon) {
         document.getElementById('insight').innerHTML = "⏳ Menunggu koordinat GPS...";
         return;
     }
 
-    // 2. Cek data Hilal (Sudah dihitung oleh interval utama belum?)
+    // 2. Cek data Hilal (sudah dihitung oleh interval utama belum?)
     if (!hilalDataFull || typeof hilalDataFull.age === 'undefined') {
         document.getElementById('insight').innerHTML = "⏳ Mengkalkulasi data astronomi...";
         return;
@@ -1878,11 +1808,11 @@ function renderUI() {
     const now = new Date();
 
     try {
-        // 3. Ambil data Maghrib (Hanya panggil jika fungsinya ada)
+        // 3. Ambil data Maghrib (hanya panggil jika fungsinya ada)
         const maghribData = typeof hitungMaghrib === 'function' ? hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
         const maghrib = maghribData.decimal;
 
-        // 4. Update UI Insight (Kirim hilalDataFull yang sudah matang)
+        // 4. Update UI Insight (kirim hilalDataFull yang sudah matang)
         // Pastikan Anda sudah mengupdate fungsi getHijriInsight seperti saran sebelumnya
         const insightHTML = getHijriInsight(hilalDataFull, maghrib, now);
         const insightElement = document.getElementById('insight');
@@ -1997,7 +1927,7 @@ function updateHilalAR(){
 
   if(!currentLat || !currentLon) return;
 
-  // 🔥 AUTO SPEED
+  // === AUTO SPEED ===
   arSpeed = getAutoSpeed();
 
   const now = new Date();
@@ -2042,7 +1972,7 @@ function drawMoonRealistic(illumination){
 
   ctx.beginPath();
 
-  // 🔥 ini kunci bentuk hilal
+  // === KUNCI BENTUK HILAL ===
   const offset = (1 - phase) * r * 2;
 
   ctx.arc(r + offset - r, r, r, 0, Math.PI*2);
@@ -2061,7 +1991,7 @@ function drawMoonRealistic(illumination){
   ctx.fill();
 }
 
-// ==== HITUNG HILAL (VERSI OPTIMASI - ANTI LAG) ===
+// ==== HITUNG HILAL ===
 function hitungHilal(lat, lon, customTime = null) {
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
@@ -2072,11 +2002,11 @@ function hitungHilal(lat, lon, customTime = null) {
   // 1. Definisikan Waktu Referensi
   const now = customTime ? new Date(customTime) : new Date();
 
-  // 2. Gunakan CACHED_IJTIMA (Pastikan sudah ada di baris paling atas script luar)
-  // Ini mencegah fungsi memanggil getLastIjtima() berulang kali yang bikin lag
+  // 2. Gunakan CACHED_IJTIMA (pastikan sudah ada di baris paling atas script luar)
+  // Mencegah fungsi memanggil getLastIjtima() berulang kali yang bikin lag
   const ijtima = CACHED_IJTIMA; 
 
-  // 3. Ambil data Kalender (Sekarang jadi ringan karena pakai Cache)
+  // 3. Ambil data Kalender (jadi ringan karena pakai Cache)
   const dataHisab = getHijriAstronomical(lat, lon);
   const dataHybrid = getHijriHybrid(lat, lon);
   
@@ -2091,7 +2021,7 @@ function hitungHilal(lat, lon, customTime = null) {
   const elo = Number(data.elo) || 0;
   const illumination = Number(data.illumination) || 0;
 
-  // 5. HITUNG UMUR BULAN (AGE) DI SINI
+  // 5. HITUNG UMUR BULAN ===
   // Rumus: (Waktu Sekarang - Waktu Ijtima) dalam jam
   const age = (now.getTime() - ijtima.getTime()) / 3600000;
 
@@ -2123,10 +2053,7 @@ function hitungHilal(lat, lon, customTime = null) {
   const sebelumMaghrib = jamNow < maghrib;
   const imkan = (alt >= 3 && elo >= 6.4);
 
-  // ==========================================
-  // 🌕 LOGIKA STATUS & PREDIKSI (UI DECISION)
-  // ==========================================
-
+  // === LOGIKA STATUS & PREDIKSI (UI DECISION) ===
   if (alt < 0) {
     if (statusEl) statusEl.innerText = "Bulan di bawah ufuk";
     if (prediksiEl) prediksiEl.innerText = "Tidak dapat dilakukan observasi hilal";
@@ -2143,24 +2070,24 @@ function hitungHilal(lat, lon, customTime = null) {
     }
   } 
   else {
-    // KONDISI SETELAH MAGHRIB
+    // === KONDISI SETELAH MAGHRIB ===
     if (hariHybrid === 29 || hariHybrid === 30 || hariHybrid === 1) {
       if (imkan) {
-        statusEl.innerText = "Hilal terlihat (Imkan Rukyat)";
-        prediksiEl.innerText = "Kriteria terpenuhi, awal bulan dimulai";
+        statusEl.innerText = "Hilal terlihat (Imkan Rukyat).";
+        prediksiEl.innerText = "Kriteria terpenuhi, awal bulan dimulai.";
       } else {
-        statusEl.innerText = "Istikmal/Hilal tak terlihat";
-        prediksiEl.innerText = "Bulan digenapkan menjadi 30 hari sesuai kriteria";
+        statusEl.innerText = "Istikmal/Hilal tak terlihat.";
+        prediksiEl.innerText = "Bulan digenapkan menjadi 30 hari sesuai kriteria.";
       }
     } 
     else {
       if (hariHisab === 15) {
-        statusEl.innerText = "Malam Purnama";
-        prediksiEl.innerText = "Bulan tepat di titik oposisi 180°";
+        statusEl.innerText = "Malam Purnama.";
+        prediksiEl.innerText = "Bulan tepat di titik oposisi 180°.";
       } else {
-        statusEl.innerText = `Malam ke-${hariHisab} Hijriah (Hisab)`;
+        statusEl.innerText = `Malam ke-${hariHisab} Hijriah.`;
         prediksiEl.innerText = hariHisab < 15 ? 
-          "Bulan menuju fase Purnama" : "Bulan menuju fase akhir bulan";
+          "Bulan menuju fase Purnama" : "Bulan menuju fase akhir bulan.";
       }
     }
   }
@@ -2295,7 +2222,7 @@ function calibrateWithSun(){
     return;
   }
 
-  alert("Arahkan kamera tepat ke Matahari ☀️ lalu tekan OK");
+  alert("Arahkan kamera tepat ke Matahari, lalu tekan OK");
 
   setTimeout(()=>{
     const sun = hitungMatahari(currentLat, currentLon);
@@ -2345,13 +2272,13 @@ function startMaghribWatcher() {
 // === MINTA UPDATE HIJRI (TANPA DUPLIKASI) ===
 function requestHijriUpdate() {
     const now = new Date();
-    // Buat kunci unik berdasarkan tanggal hari ini (contoh: "2026-04-27")
+    // Buat kunci unik berdasarkan tanggal
     const dateKey = now.toISOString().split('T')[0]; 
     const lastTriggered = localStorage.getItem("lastHijriNotifDate");
 
     // 1. CEK: Jika sudah pernah dikirim hari ini, jangan kirim lagi
     if (lastTriggered === dateKey) {
-        console.log("✅ Update Hijri sudah dilakukan hari ini. Melewati notifikasi.");
+        console.log("✅ Update Hijri sudah dilakukan hari ini.");
         
         // Tetap update tampilan UI agar tanggalnya benar, tapi tanpa notifikasi pop-up
         if (typeof updateHijriDisplay === "function") updateHijriDisplay();
@@ -2365,13 +2292,13 @@ function requestHijriUpdate() {
         updateHijriDisplay();
     }
 
-    // Tampilkan notifikasi pop-up
+    // 3. TAMPILKAN NOTIF POP-UP
     showNotif("Waktu Maghrib", "Tanggal Hijriah telah berganti ke hari baru.");
 
-    // Simpan ke LocalStorage agar tidak muncul lagi hari ini
+    // 4. SIMPAN KE LOCALSTORAGE ===
     localStorage.setItem("lastHijriNotifDate", dateKey);
 
-    // 3. Log Audit
+    // 5. LOG AUDIT
     if (typeof currentLat !== "undefined" && currentLat) {
         const data = getHijriFinal(currentLat, currentLon);
         logHijriAudit(data, modeHijri);
@@ -2418,9 +2345,7 @@ function updateAR(alpha, beta, gamma){
   const pitch = smoothPitch;
   const roll  = smoothRoll;
 
-  // ============
-  // 🌄 HORIZON
-  // ============
+  // === HORIZON ===
   if(horizon){
 
     const isPortrait = window.innerHeight > window.innerWidth;
@@ -2448,9 +2373,7 @@ function updateAR(alpha, beta, gamma){
     horizon.style.background = sun.alt > 0 ? "orange" : "lime";
   }
 
-  // ==========
-  // 🎯 MARKER
-  // ==========
+  // === MARKER ===
   let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
   let deviceAlt = -pitch; // kunci utama
   let deltaAlt = hilalData.alt - deviceAlt;
@@ -2470,14 +2393,10 @@ function updateAR(alpha, beta, gamma){
   marker.style.left = smoothX + "px";
   marker.style.top  = smoothY + "px";
 
-  // ========
-  // 🌌 GRID
-  // ========
+  // === GRID ===
   drawSkyGrid(pitch, heading);
 
-  // ============
-  // 🎨 FEEDBACK
-  // ============
+  // === FEEDBACK ===
   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
   if(error < 5){
@@ -2610,7 +2529,7 @@ function hitungVisibilityScore(alt, elo, age){
   score += Math.min(eloSafe / 15, 1) * 35;
   score += Math.min(ageSafe / 24, 1) * 20;
 
-  // bonus kondisi mudah terlihat
+  // kondisi mudah terlihat
   if(altSafe > 10 && eloSafe > 6){
     score += 10;
   }
@@ -2681,7 +2600,7 @@ function toggleHijriInfo(){
     // buka
     card.classList.remove("insight-hidden");
 
-    // 🔥 set tinggi sesuai isi (INI KUNCI)
+    // set tinggi sesuai isi
     card.style.maxHeight = card.scrollHeight + "px";
 
     btn.innerText = "❌ Tutup Informasi";
@@ -2773,7 +2692,7 @@ function nextMonth(current){
 function getHijriAstronomical(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date();
     
-    // GUNAKAN CACHE (Hemat 2-3 detik)
+    // GUNAKAN CACHE
     const ijtima = CACHED_IJTIMA; 
 
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2807,7 +2726,7 @@ function getHijriHybrid(lat, lon, customDate = null) {
     const tglPenentuan = new Date(ijtima);
     tglPenentuan.setHours(18, 15, 0, 0);
 
-    // 3. Panggil core (Ini hitungan posisi hilal)
+    // 3. Panggil core (hitung posisi hilal)
     const hilal = hitungHilalCore(lat, lon, tglPenentuan);
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4);
 
@@ -2929,7 +2848,7 @@ function setMode(mode){
   modeHijri = mode;
   localStorage.setItem("modeHijri", JSON.stringify(modeHijri));
 
-  updateHijriDisplay(); // 🔥 WAJIB
+  updateHijriDisplay(); // WAJIB
 }
 
 // === TOGGLE HIJRI HISAB ===
@@ -2943,10 +2862,7 @@ function toggleHijriMode() {
     updateHijriDisplay(); 
 }
 
-// ==========================================
-//    🌙 SISTEM AUDIT & DEBUG LOG (FINAL)
-// ==========================================
-
+// === SISTEM AUDIT & DEBUG LOG ===
 // 1. FUNGSI AUDIT: Mencatat riwayat perubahan tanggal ke LocalStorage
 function logHijriAudit(data, mode) {
     try {
@@ -2987,7 +2903,7 @@ function debugHilal() {
     const now = new Date();
 
     try {
-        // 1. Pengambilan data (Gunakan fallback agar tidak crash)
+        // 1. Pengambilan data (gunakan fallback agar tidak crash)
         const maghribData = typeof hitungMaghrib === 'function' ? hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
         const sun = typeof hitungMatahari === 'function' ? hitungMatahari(currentLat, currentLon) : { alt: 0, azi: 0 };
         const moon = hilalDataFull; // Mengambil state global
