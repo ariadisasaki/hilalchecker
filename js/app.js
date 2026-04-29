@@ -1515,68 +1515,53 @@ async function updateAddress(lat, lon) {
 async function initApp(lat, lon) {
     if (!lat || !lon) return;
     locationInitialized = true;
-
-    console.log("🚀 Aplikasi dimulai: Menginisialisasi fungsi pusat...");
-
+    
     // A. Jalankan fungsi pendukung sekali di awal
     try {
         if (typeof getMagneticDeclination === 'function') await getMagneticDeclination(lat, lon);
         if (typeof startMaghribWatcher === 'function') startMaghribWatcher(lat, lon);
-    } catch (e) { 
-        console.warn("Beberapa fungsi pendukung gagal dimuat, aplikasi tetap berjalan."); 
-    }
+    } catch (e) { console.warn("Pendukung gagal."); }
 
-    // B. Hitungan Pertama (Initial Calculation)
+    // B. Hitungan Pertama
     if (!CACHED_IJTIMA) refreshIjtimaData();
     hilalDataFull = hitungHilal(lat, lon);
 
-    // TIMER 1: Astronomi & Data (Tiap 10 Detik)
-    // Fokus pada komputasi berat agar tidak membebani frame rate.
+    // ============================================================
+    // TIMER 1: Komputasi Berat (Tiap 5-10 Detik)
+    // ============================================================
     setInterval(() => {
         if (currentLat && currentLon) {
             hilalDataFull = hitungHilal(currentLat, currentLon);
-            // Update posisi matahari untuk data card
             if (typeof updateSunCard === 'function') updateSunCard();
         }
-    }, 10000);
+    }, 10000); 
 
-    // TIMER 2: UI, AR, & Countdown (tiap 1 Detik)
-    // Fokus pada responsivitas visual bagi pengguna.
+    // ============================================================
+    // TIMER 2: UI & Visual (Tiap 1 Detik)
+    // ============================================================
     setInterval(() => {
-        const now = new Date();
-        const maghribData = typeof hitungMaghrib === 'function' ? 
-            hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
+        // CUKUP PANGGIL renderUI() SAJA
+        // Semua urusan update teks, countdown, dan progress bar 
+        // harusnya sudah ada di dalam fungsi renderUI agar tidak tumpang tindih.
+        if (typeof renderUI === 'function') {
+            renderUI(); 
+        }
 
-        // 1. Update UI Prediksi & Hilal
-        if (typeof renderUI === 'function') renderUI();
+        // Update fungsi visual lain yang tidak ada di renderUI
         if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
-        
-        // 2. Update Insight Text & Progress
-        const insightEl = document.getElementById('insight');
-        if (insightEl && typeof getHijriInsight === 'function') {
-            insightEl.innerHTML = getHijriInsight(hilalDataFull, maghribData.decimal, now);
-        }
-        
-        // 3. Update Countdown Maghrib
-        const countEl = document.getElementById('countdownMaghrib');
-        if (countEl && typeof getCountdownMaghrib === 'function') {
-            countEl.innerText = getCountdownMaghrib(now, maghribData.decimal);
-        }
-
-        // 4. Update AR Marker & Path (Smooth movement)
         if (typeof updateHilalAR === 'function') updateHilalAR();
-        
     }, 1000);
 
-    // TIMER 3: Kalender Hijriah (tiap 2 Detik)
-    // Update display tanggal secara berkala.
+    // ============================================================
+    // TIMER 3: Kalender (Tiap 2 Detik)
+    // ============================================================
     setInterval(() => {
         if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
     }, 2000);
-    setTimeout(() => {
-      updateSunCard();
-    }, 0);
-  debugHilal(); 
+
+    // Eksekusi awal
+    setTimeout(() => { updateSunCard(); }, 0);
+    debugHilal();
 }
 
 // === SENSOR ===
