@@ -1,4 +1,4 @@
-/* === RESET & BODY === */
+/* ==== RESET & BODY === */
 :root {
   --primary-bg: radial-gradient(circle at top, #0b1a3a, #020611);
   --card-bg: rgba(255, 255, 255, 0.06);
@@ -292,3 +292,21 @@ html, body{
   display: none;
 }
 .overlay.active { display: block; }
+
+#status {
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  /* Tambahan saran agar lebih terlihat seperti instrumen */
+  font-family: 'Courier New', Courier, monospace; 
+  display: block;
+  margin-bottom: 5px;
+  font-size: 1.1em;
+}
+
+#prediksi {
+  /* Membuat teks prediksi lebih halus dibanding status */
+  font-style: italic;
+  color: #d1d5db; /* Warna abu-abu terang agar tidak terlalu tajam */
+  line-height: 1.4;
+}
