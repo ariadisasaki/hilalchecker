@@ -1301,7 +1301,6 @@ async function initApp(lat, lon) {
 // ============================================================
 // BAGIAN 2: LOGIKA LAPORAN TEKNIS ASTRONOMI
 // ============================================================
-
 function hitungHilal(lat, lon, customTime = null) {
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
@@ -1345,17 +1344,17 @@ function hitungHilal(lat, lon, customTime = null) {
 
     // KOREKSI LOGIKA UFUK (Untuk Status Utama)
     const posisiUfukUtama = alt >= 0 ? "di atas ufuk" : "di bawah ufuk";
-    const aksiCakrawala = alt >= 0 ? "Objek sudah berada di atas cakrawala." : "Menunggu objek terbit melewati garis cakrawala.";
+    const aksiCakrawala = alt >= 0 ? "Hilal sudah berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala.";
     const tinggiTampilanUtama = alt >= 0 ? alt.toFixed(2) : Math.abs(alt).toFixed(2);
 
     if (alt < 0) {
       if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#f87171">NON-OBSERVABLE</span>`;
-      if (prediksiEl) prediksiEl.innerText = `Posisi objek saat ini ${tinggiTampilanUtama}° ${posisiUfukUtama}. ${aksiCakrawala}`;
+      if (prediksiEl) prediksiEl.innerText = `Posisi hilal saat ini ${tinggiTampilanUtama}° ${posisiUfukUtama}. ${aksiCakrawala}`;
     } 
     else if (sebelumMaghrib) {
       if (hariHisab < 29) {
         if (statusEl) statusEl.innerText = `Fase Konvensional (H-${hariHisab})`;
-        if (prediksiEl) prediksiEl.innerText = `Objek berada pada ketinggian ${alt.toFixed(1)}°. Lunasi bulan berjalan normal, belum memasuki jendela waktu rukyat.`;
+        if (prediksiEl) prediksiEl.innerText = `Hilal berada pada ketinggian ${alt.toFixed(1)}°. Lunasi hilal berjalan normal, belum memasuki jendela waktu rukyat.`;
       } else {
         if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#fbbf24">PERSIAPAN RUKYAT (H-29)</span>`;
         const selisihAlt = (3 - alt).toFixed(1);
@@ -1382,7 +1381,7 @@ function hitungHilal(lat, lon, customTime = null) {
       else {
         if (statusEl) statusEl.innerText = `Laporan Malam ke-${hariHisab} Hijriah`;
         const arahBulan = azi > 180 ? "Barat/Barat Daya" : "Timur/Timur Laut";
-        if (prediksiEl) prediksiEl.innerText = `Objek terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(1)}%. Kondisi langit mendukung untuk identifikasi fase.`;
+        if (prediksiEl) prediksiEl.innerText = `Hilal terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(1)}%. Kondisi langit mendukung untuk identifikasi fase.`;
       }
     }
 
@@ -1431,7 +1430,7 @@ function getHijriInsight(data, maghrib, now) {
   let teksOrientasi = "";
 
   if (isMalam) {
-    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(1)}°</b>). Di titik itulah posisi objek berada saat ini secara horizontal.`;
+    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(1)}°</b>). Di titik itulah posisi hilal berada saat ini secara horizontal.`;
   } else {
     const referensiWaktu = isSoreSiaga ? "terbenam" : "saat ini";
     
@@ -1447,7 +1446,7 @@ function getHijriInsight(data, maghrib, now) {
 
   // REVISI LOGIKA SINKRONISASI UFUK
   const posisiUfuk = altAsli >= 0 ? "di atas ufuk" : "di bawah ufuk";
-  const statusCakrawala = altAsli >= 0 ? "Kondisi objek sudah di atas cakrawala." : "Objek masih berada di bawah garis cakrawala.";
+  const statusCakrawala = altAsli >= 0 ? "Kondisi hilal sudah di atas cakrawala." : "Hilal masih berada di bawah garis cakrawala.";
   const tinggiTampilan = altAsli >= 0 ? altAsli.toFixed(2) : Math.abs(altAsli).toFixed(2);
 
   const formatWaktu = (decimalHour) => {
@@ -1459,11 +1458,11 @@ function getHijriInsight(data, maghrib, now) {
   return `
 🧭 <b>INSTRUKSI ORIENTASI LAPANGAN:</b><br>${teksOrientasi}
 <br><br>
-📐 <b>POSISI TEKNIS TERHADAP UFUK:</b><br>Saat ini, objek berada pada ketinggian <b>${tinggiTampilan}° ${posisiUfuk}</b>. ${statusCakrawala} Jarak sudut pemisah dari Matahari (Elongasi) tercatat sebesar <b>${elo.toFixed(1)}°</b>.
+📐 <b>POSISI TEKNIS TERHADAP UFUK:</b><br>Saat ini, hilal berada pada ketinggian <b>${tinggiTampilan}° ${posisiUfuk}</b>. ${statusCakrawala} Jarak sudut pemisah (Elongasi) dari Matahari tercatat sebesar <b>${elo.toFixed(1)}°</b>.
 <br><br>
-🔆 <b>KONDISI FISIK & UMUR HILAL:</b><br>Bulan telah berusia <b>${age.toFixed(1)} jam</b> dengan ketebalan cahaya (Iluminasi) sebesar <b>${illumination.toFixed(2)}%</b>. Semakin besar angka ini, semakin mudah sabit hilal dibedakan dari cahaya latar langit senja.
+🔆 <b>KONDISI FISIK & UMUR HILAL:</b><br>Hilal telah berusia <b>${age.toFixed(1)} jam</b> dengan ketebalan cahaya (Iluminasi) sebesar <b>${illumination.toFixed(2)}%</b>. Semakin besar angka ini, semakin mudah sabit hilal dibedakan dari cahaya latar langit senja.
 <br><br>
-⏱️ <b>WAKTU KRITIS PENGAMATAN:</b><br>${jamSekarang < maghribDec ? `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Maghrib tiba (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).` : `<b>Waktu Emas:</b> Matahari telah terbenam. Optimalkan pencarian sebelum Bulan ikut terbenam ke bawah ufuk.`}
+⏱️ <b>WAKTU KRITIS PENGAMATAN:</b><br>${jamSekarang < maghribDec ? `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Maghrib tiba (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).` : `<b>Waktu Emas:</b> Matahari telah terbenam. Optimalkan pencarian sebelum hilal ikut terbenam ke bawah ufuk.`}
 <br><br>
 📢 <b>HASIL ANALISIS KRITERIA (MABIMS):</b><br>Syarat Minimal: Tinggi 3° & Elongasi 6.4°<br>${(altAsli >= 3 && elo >= 6.4) ? `<b style="color:#4ade80">Lolos Kriteria: Potensi hilal terlihat (Imkan Rukyat) secara astronomis sangat besar.</b>` : `<b style="color:#f87171">Belum Lolos Kriteria: Secara teknis posisi hilal masih terlalu rendah atau terlalu dekat dengan matahari.</b>`}
 `;
