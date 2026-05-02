@@ -2847,11 +2847,20 @@ function toggleHijriMode() {
     updateHijriDisplay(); 
 }
 
+
+
+
+
 // === CETAK LAPORAN PDF ===
 function generatePDFReport() {
   try {
-    // 1. Ambil data log audit dari LocalStorage
-    const logs = JSON.parse(localStorage.getItem("hijriAuditLogs") || "[]");
+    // 1. Ambil data log audit dari LocalStorage dengan aman
+    let logs = [];
+    try {
+      logs = JSON.parse(localStorage.getItem("hijriAuditLogs") || "[]");
+    } catch (e) {
+      console.warn("Gagal membaca hijriAuditLogs:", e);
+    }
     
     // Inisialisasi jsPDF
     const { jsPDF } = window.jspdf;
@@ -2864,26 +2873,39 @@ function generatePDFReport() {
     const now = new Date();
     const timestampCetak = now.toLocaleString('id-ID');
 
-    // Ambil data realtime dari variabel global aplikasi Anda
-    const sunAlt = typeof hitungMatahari === 'function' && typeof currentLat !== 'undefined' ? hitungMatahari(currentLat, currentLon).alt.toFixed(2) + "°" : "-";
-    const sunAzi = typeof hitungMatahari === 'function' && typeof currentLat !== 'undefined' ? hitungMatahari(currentLat, currentLon).azi.toFixed(2) + "°" : "-";
-    
-    const moonAlt = typeof hilalDataFull !== 'undefined' && hilalDataFull.alt ? hilalDataFull.alt.toFixed(2) + "°" : "-8.14°";
-    const moonAzi = typeof hilalDataFull !== 'undefined' && hilalDataFull.azi ? hilalDataFull.azi.toFixed(2) + "°" : "113.85°";
-    const elongation = typeof hilalDataFull !== 'undefined' && hilalDataFull.elo ? hilalDataFull.elo.toFixed(2) + "°" : "171.20°";
-    const moonAge = typeof hilalDataFull !== 'undefined' && hilalDataFull.age ? hilalDataFull.age.toFixed(1) + " jam" : "368.9 jam";
+    // === PENGAMBILAN DATA SECARA AMAN (Mencegah Glitch/Crash) ===
+    let sunAlt = "-", sunAzi = "-";
+    try {
+      if (typeof hitungMatahari === 'function' && typeof currentLat !== 'undefined' && currentLat !== null) {
+        const sunObj = hitungMatahari(currentLat, currentLon);
+        sunAlt = (sunObj.alt || 0).toFixed(2) + "°";
+        sunAzi = (sunObj.azi || 0).toFixed(2) + "°";
+      }
+    } catch (e) { console.error("Error PDF Sun Data:", e); }
+
+    let moonAlt = "-", moonAzi = "-", elongation = "-", moonAge = "-";
+    try {
+      if (typeof hilalDataFull !== 'undefined' && hilalDataFull) {
+        moonAlt = (hilalDataFull.alt || 0).toFixed(2) + "°";
+        moonAzi = (hilalDataFull.azi || 0).toFixed(2) + "°";
+        elongation = (hilalDataFull.elo || 0).toFixed(2) + "°";
+        moonAge = (hilalDataFull.age || 0).toFixed(1) + " jam";
+      }
+    } catch (e) { console.error("Error PDF Moon Data:", e); }
     
     // Status Kriteria MABIMS
-    let kriteriaMabims = "❌ TIDAK";
-    if (typeof hilalDataFull !== 'undefined' && hilalDataFull.alt >= 3 && hilalDataFull.elo >= 6.4) {
-      kriteriaMabims = "✅ LOLOS";
-    }
+    let kriteriaMabims = "TIDAK";
+    try {
+      if (typeof hilalDataFull !== 'undefined' && hilalDataFull && hilalDataFull.alt >= 3 && hilalDataFull.elo >= 6.4) {
+        kriteriaMabims = "LOLOS";
+      }
+    } catch (e) { console.error("Error PDF MABIMS check:", e); }
 
     // === HEADER DOKUMEN ===
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
-    doc.setTextColor(11, 26, 58); // Warna biru gelap
-    doc.text("🌙 HILAL SYSTEM MONITOR REPORT", 14, 18);
+    doc.setTextColor(11, 26, 58);
+    doc.text("HILAL SYSTEM MONITOR REPORT", 14, 18);
 
     doc.setFontSize(10);
     doc.setFont("Helvetica", "normal");
@@ -2891,15 +2913,15 @@ function generatePDFReport() {
     doc.text(`Dicetak secara otomatis pada: ${timestampCetak}`, 14, 24);
 
     // Garis pemisah header
-    doc.setDrawColor(250, 204, 21); // Warna emas/kuning aksen
+    doc.setDrawColor(250, 204, 21);
     doc.setLineWidth(0.8);
     doc.line(14, 27, 196, 27);
 
     let currentY = 34;
 
-    // ===============================
+    // ==========================================
     // SECTION 1: REALTIME ASTRONOMY
-    // ===============================
+    // ==========================================
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(11, 26, 58);
@@ -2931,26 +2953,45 @@ function generatePDFReport() {
 
     currentY = doc.lastAutoTable.finalY + 8;
 
-    // =============================
+    // ==========================================
     // SECTION 2: CALENDAR & CYCLE
-    // =============================
+    // ==========================================
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(11, 26, 58);
     doc.text("Calendar & Cycle", 14, currentY);
     currentY += 4;
 
-    const modeAktif = typeof modeHijri !== 'undefined' && modeHijri ? "HISAB (Astronomi)" : "HYBRID (MABIMS)";
-    const ijtimaLast = typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA ? CACHED_IJTIMA.toLocaleString('id-ID') : "17/4/2026, 08.56.12";
+    let modeAktif = "HYBRID (MABIMS)";
+    try {
+      if (typeof modeHijri !== 'undefined' && modeHijri) {
+        modeAktif = "HISAB (Astronomi)";
+      }
+    } catch (e) {}
+
+    let outputHisab = "-";
+    try {
+      const hisabEl = document.getElementById("hijri");
+      if (hisabEl) outputHisab = hisabEl.innerText;
+    } catch (e) {}
+
+    let ijtimaLast = "-";
+    try {
+      if (typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA) {
+        ijtimaLast = CACHED_IJTIMA.toLocaleString('id-ID');
+      }
+    } catch (e) {}
     
-    let jarakIjtima = "15.37 hari";
-    if (typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA) {
-      jarakIjtima = ((now - CACHED_IJTIMA) / (1000 * 3600 * 24)).toFixed(2) + " hari";
-    }
+    let jarakIjtima = "-";
+    try {
+      if (typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA) {
+        jarakIjtima = ((now - CACHED_IJTIMA) / (1000 * 3600 * 24)).toFixed(2) + " hari";
+      }
+    } catch (e) {}
 
     const calendarData = [
       ["Mode Aktif", modeAktif],
-      ["Output Hisab", document.getElementById("hijri") ? document.getElementById("hijri").innerText : "15 Zulkaidah 1447"],
+      ["Output Hisab", outputHisab],
       ["Output Hybrid", "14 Zulkaidah 1447"],
       ["Ijtima Terakhir", ijtimaLast],
       ["Jarak ke Ijtima", jarakIjtima]
@@ -2971,9 +3012,9 @@ function generatePDFReport() {
 
     currentY = doc.lastAutoTable.finalY + 8;
 
-    // =======================================
+    // ==========================================
     // SECTION 3: LAPORAN HASIL AUDIT TANGGAL
-    // =======================================
+    // ==========================================
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(11, 26, 58);
@@ -2981,8 +3022,7 @@ function generatePDFReport() {
     currentY += 4;
 
     let auditData = [];
-    if (logs.length > 0) {
-      // Ambil 5 entri terakhir agar muat dalam 1 halaman PDF
+    if (logs && logs.length > 0) {
       const recentLogs = logs.slice(-5);
       auditData = recentLogs.map((log, idx) => [
         idx + 1,
@@ -3020,22 +3060,27 @@ function generatePDFReport() {
     // ==========================================
     doc.setDrawColor(220, 220, 220);
     doc.setFillColor(245, 247, 250);
-    doc.rect(14, currentY, 182, 18, 'F'); // Kotak background
+    doc.rect(14, currentY, 182, 18, 'F');
 
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(9);
     
     // Kesimpulan Imkan Rukyat
-    const isLolos = (typeof hilalDataFull !== 'undefined' && hilalDataFull.alt >= 3 && hilalDataFull.elo >= 6.4);
+    let isLolos = false;
+    try {
+      if (typeof hilalDataFull !== 'undefined' && hilalDataFull && hilalDataFull.alt >= 3 && hilalDataFull.elo >= 6.4) {
+        isLolos = true;
+      }
+    } catch (e) {}
+
     if (isLolos) {
-      doc.setTextColor(46, 204, 113); // Warna Hijau
+      doc.setTextColor(46, 204, 113);
       doc.text("KESIMPULAN: SUDAH IMKAN RUKYAT", 18, currentY + 6);
     } else {
-      doc.setTextColor(231, 76, 60); // Warna Merah
+      doc.setTextColor(231, 76, 60);
       doc.text("KESIMPULAN: BELUM IMKAN RUKYAT", 18, currentY + 6);
     }
 
-    // Keputusan Rukyat
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(44, 62, 80);
     doc.text("KEPUTUSAN RUKYAT: ", 18, currentY + 12);
@@ -3044,25 +3089,15 @@ function generatePDFReport() {
     doc.setTextColor(44, 62, 80);
     doc.text("BELUM DILAKUKAN RUKYAT", 56, currentY + 12);
 
-    // ================
+    // ==========================================
     // FOOTER HALAMAN
-    // ================
+    // ==========================================
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(
-      "Dokumen ini digenerate secara otomatis oleh Hilal Checker App.",
-      14,
-      doc.internal.pageSize.height - 8
-    );
-    doc.text(
-      "Halaman 1",
-      doc.internal.pageSize.width - 28,
-      doc.internal.pageSize.height - 8
-    );
+    doc.text("Dokumen ini digenerate secara otomatis oleh Hilal Checker App.", 14, doc.internal.pageSize.height - 8);
+    doc.text("Halaman 1", doc.internal.pageSize.width - 28, doc.internal.pageSize.height - 8);
 
-    // 4. Simpan / Unduh file PDF
-    const fileTimestamp = now.toISOString().split('T')[0];
     doc.save(`Hilal_System_Monitor_${fileTimestamp}.pdf`);
 
   } catch (error) {
@@ -3070,6 +3105,10 @@ function generatePDFReport() {
     alert("Terjadi kesalahan teknis saat membuat laporan PDF.");
   }
 }
+
+
+
+
 
 // ==========================
 // SISTEM AUDIT & DEBUGGING
