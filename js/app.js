@@ -1174,9 +1174,9 @@ function startClock(){
   },1000);
 }
 
-// ============================================================
-// BAGIAN 1: MANAJEMEN GPS, TIMER, & INISIALISASI
-// ============================================================
+// ======================================
+// MANAJEMEN GPS, TIMER, & INISIALISASI
+// ======================================
 // 1. Fungsi Mengambil Koordinat dari GPS/Browser
 function getLocation() {
     navigator.geolocation.getCurrentPosition(async (p) => {
@@ -1298,9 +1298,9 @@ async function initApp(lat, lon) {
     debugHilal(); 
 }
 
-// ============================================================
-// BAGIAN 2: LOGIKA LAPORAN TEKNIS ASTRONOMI
-// ============================================================
+// =================================
+// LOGIKA LAPORAN TEKNIS ASTRONOMI
+// =================================
 function hitungHilal(lat, lon, customTime = null) {
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
@@ -2897,13 +2897,13 @@ function generatePDFReport() {
 
     let currentY = 34;
 
-    // ==========================================
+    // ===============================
     // SECTION 1: REALTIME ASTRONOMY
-    // ==========================================
+    // ===============================
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(11, 26, 58);
-    doc.text("🔭 Realtime Astronomy", 14, currentY);
+    doc.text("Realtime Astronomy", 14, currentY);
     currentY += 4;
 
     const astronomyData = [
@@ -2920,7 +2920,7 @@ function generatePDFReport() {
       body: astronomyData,
       theme: 'striped',
       headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 55 },
         1: { halign: 'center', cellWidth: 42 },
@@ -2929,21 +2929,20 @@ function generatePDFReport() {
       }
     });
 
-    currentY = doc.lastAutoTable.finalY + 10;
+    currentY = doc.lastAutoTable.finalY + 8;
 
-    // ==========================================
+    // =============================
     // SECTION 2: CALENDAR & CYCLE
-    // ==========================================
+    // =============================
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(11, 26, 58);
-    doc.text("📅 Calendar & Cycle", 14, currentY);
+    doc.text("Calendar & Cycle", 14, currentY);
     currentY += 4;
 
     const modeAktif = typeof modeHijri !== 'undefined' && modeHijri ? "HISAB (Astronomi)" : "HYBRID (MABIMS)";
     const ijtimaLast = typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA ? CACHED_IJTIMA.toLocaleString('id-ID') : "17/4/2026, 08.56.12";
     
-    // Perhitungan jarak ijtima (dummy jika undefined)
     let jarakIjtima = "15.37 hari";
     if (typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA) {
       jarakIjtima = ((now - CACHED_IJTIMA) / (1000 * 3600 * 24)).toFixed(2) + " hari";
@@ -2963,60 +2962,103 @@ function generatePDFReport() {
       body: calendarData,
       theme: 'striped',
       headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 2.5 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 55 },
         1: { cellWidth: 127 }
       }
     });
 
-    currentY = doc.lastAutoTable.finalY + 12;
+    currentY = doc.lastAutoTable.finalY + 8;
+
+    // =======================================
+    // SECTION 3: LAPORAN HASIL AUDIT TANGGAL
+    // =======================================
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(11, 26, 58);
+    doc.text("Riwayat Log Audit Tanggal", 14, currentY);
+    currentY += 4;
+
+    let auditData = [];
+    if (logs.length > 0) {
+      // Ambil 5 entri terakhir agar muat dalam 1 halaman PDF
+      const recentLogs = logs.slice(-5);
+      auditData = recentLogs.map((log, idx) => [
+        idx + 1,
+        log.timestamp || "-",
+        log.mode || "HYBRID",
+        log.hijriDate || "-",
+        log.h_alt || "0°",
+        log.h_elo || "0°"
+      ]);
+    } else {
+      auditData = [["-", "Tidak ada data log audit yang tersimpan.", "-", "-", "-", "-"]];
+    }
+
+    doc.autoTable({
+      startY: currentY,
+      head: [['No', 'Waktu Log', 'Mode', 'Tgl Hijriah', 'Alt Hilal', 'Elo Hilal']],
+      body: auditData,
+      theme: 'striped',
+      headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 45 },
+        2: { halign: 'center', cellWidth: 32 },
+        3: { halign: 'center', cellWidth: 35 },
+        4: { halign: 'center', cellWidth: 30 },
+        5: { halign: 'center', cellWidth: 30 }
+      }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 8;
 
     // ==========================================
-    // SECTION 3: KESIMPULAN & KEPUTUSAN RUKYAT
+    // SECTION 4: KESIMPULAN & KEPUTUSAN RUKYAT
     // ==========================================
     doc.setDrawColor(220, 220, 220);
     doc.setFillColor(245, 247, 250);
-    doc.rect(14, currentY, 182, 22, 'F'); // Kotak background
+    doc.rect(14, currentY, 182, 18, 'F'); // Kotak background
 
     doc.setFont("Helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     
     // Kesimpulan Imkan Rukyat
     const isLolos = (typeof hilalDataFull !== 'undefined' && hilalDataFull.alt >= 3 && hilalDataFull.elo >= 6.4);
     if (isLolos) {
       doc.setTextColor(46, 204, 113); // Warna Hijau
-      doc.text("KESIMPULAN: SUDAH IMKAN RUKYAT", 18, currentY + 8);
+      doc.text("KESIMPULAN: SUDAH IMKAN RUKYAT", 18, currentY + 6);
     } else {
       doc.setTextColor(231, 76, 60); // Warna Merah
-      doc.text("KESIMPULAN: BELUM IMKAN RUKYAT", 18, currentY + 8);
+      doc.text("KESIMPULAN: BELUM IMKAN RUKYAT", 18, currentY + 6);
     }
 
     // Keputusan Rukyat
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(44, 62, 80);
-    doc.text("KEPUTUSAN RUKYAT: ", 18, currentY + 15);
+    doc.text("KEPUTUSAN RUKYAT: ", 18, currentY + 12);
 
     doc.setFont("Helvetica", "bold");
-    doc.setFillColor(127, 137, 141);
     doc.setTextColor(44, 62, 80);
-    doc.text("BELUM DILAKUKAN RUKYAT", 58, currentY + 15);
+    doc.text("BELUM DILAKUKAN RUKYAT", 56, currentY + 12);
 
-    // ==========================================
+    // ================
     // FOOTER HALAMAN
-    // ==========================================
+    // ================
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
       "Dokumen ini digenerate secara otomatis oleh Hilal Checker App.",
       14,
-      doc.internal.pageSize.height - 10
+      doc.internal.pageSize.height - 8
     );
     doc.text(
       "Halaman 1",
       doc.internal.pageSize.width - 28,
-      doc.internal.pageSize.height - 10
+      doc.internal.pageSize.height - 8
     );
 
     // 4. Simpan / Unduh file PDF
@@ -3029,10 +3071,9 @@ function generatePDFReport() {
   }
 }
 
-// ============================================================
-// BAGIAN 3: SISTEM AUDIT & DEBUGGING
-// ============================================================
-
+// ==========================
+// SISTEM AUDIT & DEBUGGING
+// ==========================
 function logHijriAudit(data, mode) {
     try {
         let logs = JSON.parse(localStorage.getItem("hijriAuditLogs") || "[]");
@@ -3149,9 +3190,9 @@ window.stopDebug = function() {
     }
 };
 
-// ============================================================
-// 🚀 EKSEKUSI UTAMA (Letakkan Tepat di Akhir File)
-// ============================================================
+// ===================
+// 🚀 EKSEKUSI UTAMA
+// ===================
 window.addEventListener('DOMContentLoaded', () => {
     getLocation();
 });
