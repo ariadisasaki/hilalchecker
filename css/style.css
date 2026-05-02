@@ -158,6 +158,45 @@ html, body{
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
+/* Menyeragamkan semua Judul Card agar berwarna Emas dan di Tengah */
+.card h3 {
+  color: var(--accent-gold) !important;
+  text-align: center !important;
+  width: 100%;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  text-transform: none !important;
+  letter-spacing: normal;
+  font-weight: 600;
+  display: block;
+}
+
+/* Garis Pemisah (Divider) di dalam Card */
+.card-divider {
+  border: 0;
+  border-top: 1px solid var(--glass-border);
+  margin: 12px 0;
+}
+
+/* Header Fleksibel untuk Card yang bisa di-toggle */
+.hijri-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.hijri-toggle-wrapper h3 {
+  margin: 0 !important;
+}
+
+.hijri-toggle-wrapper span {
+  color: var(--accent-cyan);
+  font-size: 18px;
+}
+
 /* === GRID SYSTEM DATA === */
 .sun-grid, .data-grid, .prediksi-grid {
   display: grid;
@@ -190,7 +229,7 @@ html, body{
 }
 
 /* === FONT & LABEL === */
-.label, h3, .sidebar h3 {
+.label, .sidebar h3 {
   text-transform: none !important;
   letter-spacing: normal;
   font-weight: 600;
@@ -225,24 +264,24 @@ html, body{
   box-sizing: border-box;
 }
 
+/* KONDISI SAAT SEMBUNYI */
 .insight-hidden {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   margin: 0 !important; 
-  padding: 0 !important;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0, 1, 0, 1);
 }
 
+/* KONDISI SAAT MUNCUL */
 .insight-show {
-  max-height: 2000px;
+  max-height: 2500px; /* Nilai besar agar teks tidak terpotong saat memanjang */
   opacity: 1;
-  padding: 15px 20px;
-  margin-bottom: 10px;
-}
-
-.toggle-wrapper, .hijri-toggle-wrapper {
-  margin: 2px auto 8px;
+  padding-top: 10px !important;
+  padding-bottom: 5px !important;
+  transition: all 0.4s ease-in-out;
 }
 
 /* === PROGRESS BAR === */
@@ -265,7 +304,6 @@ html, body{
   height: 100%;
   background: linear-gradient(90deg, #38bdf8, #22c55e);
 }
-
 
 /* === TOMBOL INSTALL === */
 #installBtn {
