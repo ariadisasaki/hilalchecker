@@ -13,7 +13,6 @@
 
 <body>
 
-  <!-- SPLASH -->
   <div id="splash">
     <div class="splash-content">
       <img src="assets/icon-512.png" class="logo" onerror="this.style.display='none'">
@@ -23,58 +22,64 @@
     </div>
   </div>
 
-  <!-- HEADER -->
   <div class="header">
     <h1>🌕 Hilal Checker</h1>
     <p>Metode Hisab & Rukyat Modern</p>
   </div>
 
-  <!-- CONTAINER -->
   <div class="container">
-
-    <!-- TOGGLE INFO HIJRI -->
-    <div class="toggle-wrapper">
-      <button id="toggleHijriBtn" onclick="toggleHijriInfo()">
-        🔽 Tampilkan Informasi
-      </button>
-    </div>
     
-    <!-- ISI INFO -->
-    <div id="hijriInfoCard" class="info-hijri insight-hidden">
-      Aplikasi ini mendukung metode <b>Hisab</b> dan <b>Rukyat Hilal</b> berbasis lokasi pengguna secara presisi. Seluruh parameter yang ditampilkan mencerminkan kondisi nyata (*real-time*) benda langit di posisi Anda, yang dihitung secara matematis menggunakan algoritma astronomi modern.<br><br>
-      
-      Sistem penanggalan dalam aplikasi ini mengacu pada kriteria <b>Imkan Rukyat MABIMS</b>. Berdasarkan kriteria ini, awal bulan baru hanya dapat ditetapkan jika hilal secara ilmiah memungkinkan untuk diamati. Ketetapan tersebut mewajibkan terpenuhinya syarat-syarat berikut:<br>
-      * Telah terjadi <b>Ijtima' (Konjungsi)</b>, yaitu kondisi ketika posisi Bulan dan Matahari berada pada bujur astronomis yang sama.<br>
-      * <b>Ketinggian Hilal</b> saat Matahari terbenam minimal 3° di atas ufuk.<br>
-      * <b>Elongasi Geosentrik</b> (jarak sudut antara Bulan dan Matahari) minimal 6,4°.<br><br>
-      
-      <b>Implikasi Kriteria:</b><br>
-      ❌ <b>Belum Memenuhi Syarat:</b> Bulan berjalan digenapkan menjadi 30 hari (<i>Istikmal</i>).<br>
-      ✅ <b>Memenuhi Syarat:</b> Malam tersebut resmi memasuki awal bulan baru.<br><br>
-      
-      Metode ini sejalan dengan kaidah fikih dan astronomi praktis yang digunakan dalam penentuan awal bulan Hijriah di Indonesia. <b><i>(Baca penjelasan lengkap di bagian bawah aplikasi).</i></b>
-    </div>
-
-    <!-- TOGGLE MODE HIJRI -->
     <div class="toggle-wrapper">
-      <input type="checkbox" id="hijriModeToggle" />
+      <input type="checkbox" id="hijriModeToggle">
       <label id="hijriModeLabel">Mode Hisab</label>
     </div>
 
-    <!-- WAKTU -->
+    <div class="card">
+      <div class="hijri-toggle-wrapper" onclick="toggleHijriInfo()">
+        <h3>ℹ️ Informasi Sistem</h3>
+        <span id="hijriToggleIcon">▼</span>
+      </div>
+      
+      <div id="hijriInfoCard" class="info-hijri insight-hidden">
+        <hr class="card-divider">
+        Aplikasi ini mendukung metode <b>Hisab</b> dan <b>Rukyat Hilal</b> berbasis lokasi pengguna secara presisi. Seluruh parameter yang ditampilkan mencerminkan kondisi nyata (<i>real-time</i>) benda langit di posisi Anda, yang dihitung secara matematis menggunakan algoritma astronomi modern.<br><br>
+
+        Untuk memberikan fleksibilitas, aplikasi ini menyediakan dua mode perhitungan yang dapat Anda pilih:<br><br>
+
+        <b>1. MODE HISAB (Sistem Astronomi Murni)</b><br>
+        Mode ini menggunakan perhitungan matematis dan geometris posisi Bulan terhadap Bumi secara terus-menerus tanpa terikat batas wilayah atau pengamatan visual. Pergantian bulan baru dalam <i>Mode Hisab</i> murni didasarkan pada terjadinya peristiwa <b>Ijtima' (Konjungsi) sebelum Matahari terbenam</b>, terlepas dari apakah posisi Bulan sudah cukup tinggi untuk dilihat atau belum.<br><br>
+
+        <b>2. MODE HYBRID (Sistem MABIMS - Kementerian Agama RI)</b><br>
+        Mode ini menggabungkan perhitungan astronomi akurat dengan kemungkinan keterlihatan hilal di lapangan (<i>Imkan Rukyat</i>). <i>Mode Hybrid</i> tidak hanya melihat apakah konjungsi sudah terjadi, tetapi juga menguji apakah posisi hilal pada petang hari tersebut secara ilmiah sudah memenuhi batas minimal untuk dapat diindera oleh mata manusia atau alat optik.<br><br>
+
+        <b>Kapan Pengamatan (Rukyat) Dilakukan?</b><br>
+        Sesuai dengan kaidah astronomi praktis, aktivitas rukyat hilal untuk menentukan awal bulan berikutnya selalu dilaksanakan pada <b>petang hari ke-29 bulan berjalan</b>, tepat saat Matahari terbenam. Pada momen inilah kriteria visibilitas akan diuji.<br><br>
+
+        Dalam <b>Mode Hybrid</b>, penentuan awal bulan mengacu pada kriteria <b>Imkan Rukyat MABIMS</b> yang mewajibkan terpenuhinya syarat-syarat berikut saat petang hari ke-29 tersebut:<br>
+        * Telah terjadi <b>Ijtima' (Konjungsi)</b>, yaitu kondisi ketika posisi Bulan dan Matahari berada pada bujur astronomis yang sama.<br>
+        * <b>Ketinggian Hilal</b> saat Matahari terbenam minimal 3° di atas ufuk.<br>
+        * <b>Elongasi Geosentrik</b> (jarak sudut antara Bulan dan Matahari) minimal 6,4°.<br><br>
+
+        <b>Implikasi Kriteria (Mode Hybrid):</b><br>
+        ❌ <b>Belum Memenuhi Syarat pada Hari ke-29:</b> Bulan berjalan digenapkan menjadi 30 hari (<i>Istikmal</i>).<br>
+        ✅ <b>Memenuhi Syarat pada Hari ke-29:</b> Malam tersebut resmi memasuki awal bulan baru.<br><br>
+
+        Perpaduan kedua mode ini dirancang untuk menjembatani berbagai metode penentuan awal bulan Hijriah yang digunakan di Indonesia, baik melalui pendekatan hisab murni maupun rukyat praktis. <b><i>(Baca penjelasan lengkap di bagian bawah aplikasi).</i></b>
+      </div>
+    </div>
+
     <div class="card">
       <h3>⏰ Tanggal dan Waktu</h3>
       <p id="waktu">Memuat...</p>
       <p id="hijri">Memuat...</p>
     </div>
 
-    <!-- LOKASI -->
     <div class="card">
       <h3>📍 Lokasi</h3>
       <p id="loc">Memuat...</p>
       <p id="lokasi">Memuat...</p>
     </div>
-
+    
     <div class="card">
       <h3>☀️ Data Matahari</h3>
       <div class="sun-grid">
@@ -123,14 +128,12 @@
       </div>
     </div>
 
-    <!-- STATUS HILAL -->
     <div class="card">
       <h3>📝 Status Hilal</h3>
       <div id="status" class="status">Memuat...</div>
       <div id="prediksi" class="status">Memuat...</div>
     </div>
 
-    <!-- PREDIKSI HILAL (CARD BARU) -->
     <div class="card">
       <h3>🔭 Visibilitas Hilal</h3>
       <div class="prediksi-grid">
@@ -155,9 +158,8 @@
         </div>
       </div>
       
-      <!-- 🔥 PEMBATAS -->
-      <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">
-      <!-- ⏳ SIKLUS BULAN -->
+      <hr class="card-divider">
+
       <div class="prediksi-grid">
         <div class="prediksi-box full">
           <span class="label">Ijtima Terakhir</span>
@@ -177,28 +179,25 @@
     </div>
 
     <div class="progress-container">
-      <!-- COUNTDOWN -->
       <div id="countdownMaghrib" class="countdown-text"></div>
       
-      <!-- PROGRESS BAR -->
       <div class="progress-bar-bg">
         <div id="progressBar" class="progress-bar"></div>
       </div>
     </div>
 
-    <!-- TOGGLE PENJELASAN -->
-    <div class="toggle-wrapper">
-      <button id="toggleInsightBtn" onclick="toggleInsight()">
-        🔽 Tampilkan Penjelasan
-      </button>
+    <div class="card">
+      <div class="hijri-toggle-wrapper" onclick="toggleInsight()">
+        <h3>🌙 Tampilkan Penjelasan</h3>
+        <span id="insightToggleIcon">▼</span>
+      </div>
+      
+      <div id="insightCard" class="insight-hidden">
+        <hr class="card-divider">
+        <div id="insight" class="insight-text"></div>
+      </div>
     </div>
-    
-    <!-- ANALISIS (TOGGLE) -->
-    <div id="insightCard" class="card insight-hidden">
-      <div id="insight" class="insight-text"></div>
-    </div>
-    
-    <!-- PLANETARIUM -->
+
     <div class="card">
       <h3>🌌 Planetarium Hilal</h3>
       <canvas id="planetarium"></canvas>
@@ -207,9 +206,7 @@
     </div>
   
     <div id="menuBtn" class="menu-btn">☰</div>
-    <!-- Overlay -->
     <div id="overlay" class="overlay"></div>
-    <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
       <h3>📑 Menu</h3>
       <button onclick="location.reload()">🔄 Refresh</button>
@@ -225,23 +222,14 @@
   <script>
     window.addEventListener("load", () => {
       const splash = document.getElementById("splash");
-      
-      // 🔒 cegah error kalau elemen tidak ditemukan
       if (!splash) return;
-      
-      // ⏳ durasi tampil splash
       setTimeout(() => {
-        
-        // 🎬 animasi fade out
         splash.style.opacity = "0";
         splash.style.visibility = "hidden";
-        
-        // 🧹 hapus dari tampilan setelah animasi selesai
         setTimeout(() => {
           splash.style.display = "none";
         }, 500);
-      
-      }, 1800); // bisa ubah (1500 - 2500)
+      }, 1800);
     });
 
     if("serviceWorker" in navigator){
@@ -271,7 +259,7 @@
 
   <script>
     window.addEventListener("load", () => {
-      initPlanetarium(); // 🔥 WAJIB
+      initPlanetarium();
     });
   </script>
   <button id="installBtn">📲 Install App</button>
