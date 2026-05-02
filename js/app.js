@@ -596,6 +596,40 @@ function raDecToAltAz(ra, dec, lat, lon, date){
   return { alt, azi };
 }
 
+// === ALTAZ TO XY ===
+function altAzToXY(alt, azi){
+
+  if(alt === undefined || azi === undefined) return null;
+  if(isNaN(alt) || isNaN(azi)) return null;
+  if(alt < 0) return null;
+
+  // === NORMALISASI ===
+  azi = (azi + 360) % 360;
+
+  // === BALIK ARAH AZIMUTH ===
+  let x = ((360 - azi) / 360) * canvas.width;
+
+  // === ALTITUDE TETAP ===
+  let y = canvas.height - (alt / 90) * canvas.height;
+
+  return { x, y };
+}
+    
+// === BACKGROUND LANGIT ===
+function drawSkyBackground(){
+
+  let sun = sunCache;
+  let vf = getVisibilityFactor(sun.alt);
+
+  let r = Math.floor(10 + (135 * (1 - vf)));
+  let g = Math.floor(10 + (206 * (1 - vf)));
+  let b = Math.floor(30 + (235 * (1 - vf)));
+
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+}
+
 // === POSISI PLANET ===
 function getPlanetPosition(name, date){
 
@@ -651,40 +685,6 @@ function getPlanetPosition(name, date){
   const dec = rad2deg(Math.atan2(ze, Math.sqrt(xe*xe + ye*ye)));
 
   return { ra, dec };
-}
-
-// === ALTAZ TO XY ===
-function altAzToXY(alt, azi){
-
-  if(alt === undefined || azi === undefined) return null;
-  if(isNaN(alt) || isNaN(azi)) return null;
-  if(alt < 0) return null;
-
-  // === NORMALISASI ===
-  azi = (azi + 360) % 360;
-
-  // === BALIK ARAH AZIMUTH ===
-  let x = ((360 - azi) / 360) * canvas.width;
-
-  // === ALTITUDE TETAP ===
-  let y = canvas.height - (alt / 90) * canvas.height;
-
-  return { x, y };
-}
-    
-// === BACKGROUND LANGIT ===
-function drawSkyBackground(){
-
-  let sun = sunCache;
-  let vf = getVisibilityFactor(sun.alt);
-
-  let r = Math.floor(10 + (135 * (1 - vf)));
-  let g = Math.floor(10 + (206 * (1 - vf)));
-  let b = Math.floor(30 + (235 * (1 - vf)));
-
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
 }
 
 // === GAMBAR BULAN ===
@@ -1354,7 +1354,7 @@ function hitungHilal(lat, lon, customTime = null) {
     else if (sebelumMaghrib) {
       if (hariHisab < 29) {
         if (statusEl) statusEl.innerText = `Fase Konvensional (H-${hariHisab})`;
-        if (prediksiEl) prediksiEl.innerText = `Hilal berada pada ketinggian ${alt.toFixed(1)}°. Lunasi hilal berjalan normal, belum memasuki jendela waktu rukyat.`;
+        if (prediksiEl) prediksiEl.innerText = `Hilal berada pada ketinggian ${alt.toFixed(1)}°. Fase hilal berjalan normal, belum memasuki jendela waktu rukyat.`;
       } else {
         if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#fbbf24">PERSIAPAN RUKYAT (H-29)</span>`;
         const selisihAlt = (3 - alt).toFixed(1);
