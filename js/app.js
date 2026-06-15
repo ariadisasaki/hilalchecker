@@ -163,7 +163,9 @@ function getNextIjtima() {
 // ====================================
 function getHijriAstronomical(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
-    const ijtima = getLastIjtima(); 
+    
+    // Pastikan mengambil data dari proxy Meeus murni
+    const ijtima = typeof getLastIjtima === 'function' ? getLastIjtima() : new Date(); 
     
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
     const tglIjtima = new Date(ijtima.getFullYear(), ijtima.getMonth(), ijtima.getDate()); 
@@ -172,32 +174,51 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     const maghrib = typeof hitungMaghrib === 'function' ? (hitungMaghrib(lat, lon, now)?.decimal ?? 18) : 18; 
     const jamNow = now.getHours() + now.getMinutes() / 60; 
     const sebelumMaghribHariH = jamNow < maghrib;
-    const ageTotal = (now.getTime() - ijtima.getTime()) / 86400000;
-    const cycle = Math.floor(ageTotal / 29.530588853);
     
-    let bulanIjtima = ((11 - 1 + cycle) % 12) + 1;
-    let tahunIjtima = 1447 + Math.floor((11 - 1 + cycle) / 12);
+    // KALIBRASI BENCHMARK SIKLUS (Menggunakan Janji Epoch 17 Mei 2026)
+    const epochIjtimaSiklus = new Date(Date.UTC(2026, 4, 17, 4, 3)); 
+    const ageTotal = (ijtima.getTime() - epochIjtimaSiklus.getTime()) / 86400000;
+    let cycle = Math.round(ageTotal / 29.530588853);
+    
+    // KOREKSI DARURAT SIKLUS: Jika hari H ijtima dan masih sebelum Maghrib, 
+    // mundurkan 1 cycle agar nama bulan tidak mencuri start ke bulan baru duluan.
+    const isSameDayAsIjtima = tglSekarang.getTime() === tglIjtima.getTime();
+    if (isSameDayAsIjtima && sebelumMaghribHariH) {
+        cycle = cycle - 1;
+    }
+    
+    // Indeks Dasar 12 mewakili Zulhijjah 1447 H
+    let bulanIjtima = ((12 - 1 + cycle) % 12) + 1;
+    let tahunIjtima = 1447 + Math.floor((12 - 1 + cycle) / 12);
+    
     let d = diffDays;
     let m = bulanIjtima;
     let y = tahunIjtima;
 
-    if (tglSekarang.getTime() === tglIjtima.getTime()) {
+    // LOGIKA PENENTUAN HARI H ASTRO
+    if (isSameDayAsIjtima) {
         if (sebelumMaghribHariH) {
-            d = 30; 
+            d = 29; // Sore ini sebelum Maghrib mutlak akhir Zulhijjah (Tanggal 29)
+            m = bulanIjtima;
         } else {
-            d = 1;  
+            d = 1;  // Setelah Maghrib masuk Tanggal 1 Bulan Baru (Muharram)
             m = bulanIjtima + 1;
         }
     } else if (tglSekarang > tglIjtima) {
-        m = bulanIjtima + 1;
         if (sebelumMaghribHariH) {
             d = diffDays;
+            m = bulanIjtima + 1;
         } else {
             d = diffDays + 1;
+            m = bulanIjtima + 1;
         }
     }
-    if (m > 12) { m = 1; y += 1; }
-    const isSameDayAsIjtima = tglSekarang.getTime() === tglIjtima.getTime();
+    
+    if (m > 12) { 
+        m = 1; 
+        y += 1; 
+    }
+    
     return { 
         d: Math.max(1, d), m, y, 
         isHariHIjtima: isSameDayAsIjtima, 
@@ -216,26 +237,35 @@ function getHijriHybrid(lat, lon, customDate = null) {
     const detikMaghrib = Math.floor((((desimalMaghrib - jamMaghrib) * 60) - menitMaghrib) * 60);
     waktuMaghribHariIni.setHours(jamMaghrib, menitMaghrib, detikMaghrib, 0);
 
+    // Hitung kriteria hilal murni saat Maghrib hari H ijtimak
     const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, waktuMaghribHariIni) : { alt: 0, elo: 0 }; 
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4); 
+    
     let d = hisab.d; 
     let m = hisab.m; 
     let y = hisab.y; 
 
+    // EVALUASI KEPUTUSAN KONTROL HYBRID MABIMS
     if (hisab.isHariHIjtima) {
         if (hisab.isBeforeMaghrib) {
-            d = 29; 
+            d = 29; // Kunci di tanggal 29 sore ini
             m = hisab.m; 
         } else {
+            // MALAM INI SETELAH MAGHRIB: Eksekusi keputusan hukum rukyat!
             if (!imkanRukyat) {
-                d = 30;
-                m = hisab.m - 1; 
-                if (m < 1) { m = 12; y -= 1; }
+                d = 30; // Jika tidak imkan, hukumnya wajib ISTIKMAL (Bulan berjalan jadi 30)
+                m = hisab.m; // Tetap di bulan Zulhijjah
+                y = hisab.y;
+            } else {
+                d = 1;  // Jika imkan terpenuhi, masuk tanggal 1 bulan baru (Muharram)
+                m = hisab.m + 1;
+                if (m > 12) { m = 1; y += 1; }
             }
         }
     }
     return { d, m, y }; 
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
 
